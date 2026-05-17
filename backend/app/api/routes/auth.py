@@ -117,27 +117,20 @@ async def run_raw_query(
         raise HTTPException(status_code=400, detail="Query string is required.")
         
     try:
-        # Robustly split query string by semicolons while ignoring semicolons inside string literals
+        # Robustly split query string by semicolons while ignoring semicolons inside string literals using quote parity check
         statements = []
         current = []
-        in_quote = False
-        in_double_quote = False
-        i = 0
-        while i < len(query_str):
-            char = query_str[i]
-            if char == "'" and (i == 0 or query_str[i-1] != "\\"):
-                in_quote = not in_quote
-            elif char == '"' and (i == 0 or query_str[i-1] != "\\"):
-                in_double_quote = not in_double_quote
-            elif char == ';' and not in_quote and not in_double_quote:
-                stmt_str = "".join(current).strip()
-                if stmt_str:
-                    statements.append(stmt_str)
-                current = []
-                i += 1
-                continue
+        for char in query_str:
+            if char == ';':
+                # Semicolon is outside single quotes if we have seen an even number of single quotes
+                accumulated = "".join(current)
+                if accumulated.count("'") % 2 == 0:
+                    stmt_str = accumulated.strip()
+                    if stmt_str:
+                        statements.append(stmt_str)
+                    current = []
+                    continue
             current.append(char)
-            i += 1
         stmt_str = "".join(current).strip()
         if stmt_str:
             statements.append(stmt_str)
