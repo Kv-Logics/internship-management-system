@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../providers';
 import { useRouter } from 'next/navigation';
-import api from '../services/api';
+import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
   Search, Trash2, Mail, ShieldAlert, Award, UserCheck, RefreshCw, 
