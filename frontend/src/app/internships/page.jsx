@@ -315,7 +315,7 @@ export default function InternshipList() {
 
                     {/* Project Duration */}
                     <td className="px-6 py-5 whitespace-nowrap">
-                      <div className="text-sm font-bold text-indigo-650 leading-tight">
+                      <div className="text-sm font-bold text-indigo-600 leading-tight">
                         {calculateDuration(item.start_date, item.end_date)}
                       </div>
                       <div className="text-[10px] text-gray-400 mt-1 flex items-center">
@@ -384,7 +384,7 @@ export default function InternshipList() {
                           status === 'complete' || status === 'pending' ? (
                             <button 
                               onClick={(e) => handleGenerateCertificate(item.internship_id, e)} 
-                              className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-750 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+                              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
                             >
                               Issue Cert
                             </button>
@@ -510,7 +510,7 @@ export default function InternshipList() {
                   </div>
                   <div>
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Duration</span>
-                    <p className="text-xs font-extrabold mt-1 text-indigo-650">{calculateDuration(previewItem.start_date, previewItem.end_date)}</p>
+                    <p className="text-xs font-extrabold mt-1 text-indigo-600">{calculateDuration(previewItem.start_date, previewItem.end_date)}</p>
                   </div>
                 </div>
               </div>
