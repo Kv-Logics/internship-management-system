@@ -5,6 +5,7 @@ from datetime import date
 from .document import DocumentResponse
 from .intern import InternResponse
 from .certificate import CertificateResponse
+from .faculty import FacultyResponse
 
 class InternshipBase(BaseModel):
     internship_title: str
@@ -29,6 +30,7 @@ class InternshipResponse(InternshipBase):
     internship_id: UUID
     intern_id: UUID
     intern: Optional[InternResponse] = None
+    faculty: Optional[FacultyResponse] = None
     documents: Optional[List[DocumentResponse]] = []
     certificate: Optional[CertificateResponse] = None
 
