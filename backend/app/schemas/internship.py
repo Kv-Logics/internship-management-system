@@ -20,6 +20,10 @@ class InternshipCreate(InternshipBase):
 
 class InternshipUpdate(InternshipBase):
     intern_email: Optional[EmailStr] = None
+    intern_name: Optional[str] = None
+    intern_phone: Optional[str] = None
+    college_name: Optional[str] = None
+    department: Optional[str] = None
 
 class InternshipResponse(InternshipBase):
     internship_id: UUID

@@ -41,12 +41,13 @@ async def create_internship(intern_id: UUID, internship: InternshipCreate, db: A
 
 @router.get("/", response_model=List[InternshipResponse])
 async def read_internships(skip: int = 0, limit: int = 100, search: Optional[str] = None, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+    from app.models.faculty import Faculty
     query = select(Internship).options(
         joinedload(Internship.documents),
         joinedload(Internship.certificate),
         joinedload(Internship.intern),
         joinedload(Internship.faculty)
-    ).join(Intern)
+    ).join(Intern).join(Faculty, isouter=True)
     
     if getattr(current_user, "role", "faculty") not in ("dean", "admin"):
         query = query.filter(Internship.faculty_id == current_user.faculty_id)
@@ -55,7 +56,8 @@ async def read_internships(skip: int = 0, limit: int = 100, search: Optional[str
         query = query.filter(
             (Intern.intern_name.ilike(f"%{search}%")) |
             (Internship.internship_title.ilike(f"%{search}%")) |
-            (Intern.college_name.ilike(f"%{search}%"))
+            (Intern.college_name.ilike(f"%{search}%")) |
+            (Faculty.faculty_name.ilike(f"%{search}%"))
         )
         
     query = query.offset(skip).limit(limit)
@@ -95,11 +97,25 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
     update_data = internship_update.model_dump(exclude_unset=True)
     
     intern_email = update_data.pop("intern_email", None)
-    if intern_email is not None:
+    intern_name = update_data.pop("intern_name", None)
+    intern_phone = update_data.pop("intern_phone", None)
+    college_name = update_data.pop("college_name", None)
+    department = update_data.pop("department", None)
+    
+    if any(x is not None for x in (intern_email, intern_name, intern_phone, college_name, department)):
         intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
         intern = intern_result.scalars().first()
         if intern:
-            intern.email = intern_email
+            if intern_email is not None:
+                intern.email = intern_email
+            if intern_name is not None:
+                intern.intern_name = intern_name
+            if intern_phone is not None:
+                intern.phone = intern_phone
+            if college_name is not None:
+                intern.college_name = college_name
+            if department is not None:
+                intern.department = department
 
     update_data.pop("faculty_mentor", None)
     update_data.pop("faculty_id", None)

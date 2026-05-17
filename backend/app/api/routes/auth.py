@@ -98,3 +98,44 @@ async def delete_faculty(faculty_id: UUID, db: AsyncSession = Depends(get_db), c
     await db.delete(faculty)
     await db.commit()
     return None
+
+from sqlalchemy import text
+from typing import Dict, Any
+from datetime import date, datetime
+
+@router.post("/admin/query")
+async def run_raw_query(
+    request: Dict[str, Any], 
+    db: AsyncSession = Depends(get_db), 
+    current_user = Depends(get_current_faculty)
+):
+    if getattr(current_user, "role", "faculty") != "admin":
+        raise HTTPException(status_code=403, detail="Only system administrators can execute raw database queries.")
+    
+    query_str = request.get("query")
+    if not query_str:
+        raise HTTPException(status_code=400, detail="Query string is required.")
+        
+    try:
+        # Execute raw SQL query
+        result = await db.execute(text(query_str))
+        
+        if result.returns_rows:
+            rows = result.fetchall()
+            keys = result.keys()
+            output = []
+            for row in rows:
+                row_dict = {}
+                for k, v in zip(keys, row):
+                    if isinstance(v, (UUID, date, datetime)):
+                        row_dict[k] = str(v)
+                    else:
+                        row_dict[k] = v
+                output.append(row_dict)
+            return {"type": "select", "columns": list(keys), "rows": output}
+        else:
+            await db.commit()
+            return {"type": "mutation", "rowcount": result.rowcount}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
