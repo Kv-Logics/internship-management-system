@@ -117,10 +117,26 @@ async def run_raw_query(
         raise HTTPException(status_code=400, detail="Query string is required.")
         
     try:
-        # Robustly split query string by semicolons while ignoring semicolons inside string literals using quote parity check
+        # Strip comments from query string first to prevent comments containing single quotes (e.g. Peter's) from throwing off parity count
+        query_lines = []
+        for line in query_str.split("\n"):
+            line_strip = line.strip()
+            # Skip comment lines
+            if line_strip.startswith("--") or line_strip.startswith("#"):
+                continue
+            # Remove inline comments if not inside quotes
+            if "--" in line:
+                parts = line.split("--")
+                if parts[0].count("'") % 2 == 0:
+                    query_lines.append(parts[0])
+                    continue
+            query_lines.append(line)
+        cleaned_query = "\n".join(query_lines)
+
+        # Robustly split cleaned query string by semicolons while ignoring semicolons inside string literals using quote parity check
         statements = []
         current = []
-        for char in query_str:
+        for char in cleaned_query:
             if char == ';':
                 # Semicolon is outside single quotes if we have seen an even number of single quotes
                 accumulated = "".join(current)
@@ -140,9 +156,7 @@ async def run_raw_query(
         total_rows_affected = 0
         
         for stmt in statements:
-            # Strip comments and ensure statement is not empty
-            lines = [line.strip() for line in stmt.split("\n") if line.strip() and not line.strip().startswith("--")]
-            cleaned_stmt = "\n".join(lines).strip()
+            cleaned_stmt = stmt.strip()
             if not cleaned_stmt:
                 continue
                 
