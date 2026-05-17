@@ -1,9 +1,10 @@
 'use client';
-import React from 'react';
+import React, { useContext } from 'react';
 import api from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import { LayoutDashboard, Users, Clock, Award, ArrowUpRight, TrendingUp, Calendar, BookOpen } from 'lucide-react';
 import Link from 'next/link';
+import { AuthContext } from './providers';
 
 const fetchDashboardStats = async () => {
   const res = await api.get('/internships/');
@@ -28,6 +29,7 @@ const fetchDashboardStats = async () => {
 };
 
 export default function Dashboard() {
+  const { user } = useContext(AuthContext);
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ['dashboardStats'],
     queryFn: fetchDashboardStats
@@ -68,10 +70,12 @@ export default function Dashboard() {
             Real-time analytics and tracking interface for your mentored student internships, project periods, and official certificate status.
           </p>
         </div>
-        <Link href="/internships/add" className="z-10 mt-6 md:mt-0 px-6 py-3.5 bg-white text-indigo-900 font-bold rounded-xl shadow-lg hover:shadow-white/10 hover:scale-105 active:scale-98 transition-all duration-300 flex items-center space-x-2 text-sm">
-          <span>Add New Intern</span>
-          <ArrowUpRight size={16} />
-        </Link>
+        {(stats?.total < 5 || user?.role === 'admin') && (
+          <Link href="/internships/add" className="z-10 mt-6 md:mt-0 px-6 py-3.5 bg-white text-indigo-900 font-bold rounded-xl shadow-lg hover:shadow-white/10 hover:scale-105 active:scale-98 transition-all duration-300 flex items-center space-x-2 text-sm">
+            <span>Add New Intern</span>
+            <ArrowUpRight size={16} />
+          </Link>
+        )}
       </div>
 
       {/* Stats Cards */}

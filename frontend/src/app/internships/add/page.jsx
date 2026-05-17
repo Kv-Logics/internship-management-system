@@ -1,13 +1,32 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../../services/api';
 import toast from 'react-hot-toast';
 import { User, Mail, Phone, BookOpen, GraduationCap, Calendar, Award, Edit3, ArrowRight, CheckCircle } from 'lucide-react';
+import { AuthContext } from '../../providers';
 
 export default function AddInternship() {
   const router = useRouter();
+  const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    const checkLimit = async () => {
+      if (user && user.role !== 'admin') {
+        try {
+          const res = await api.get('/internships/');
+          if (res.data.length >= 5) {
+            toast.error('Limit Exceeded: You are already mentoring the maximum of 5 students.');
+            router.push('/');
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    };
+    checkLimit();
+  }, [user, router]);
   const [formData, setFormData] = useState({
     intern_name: '',
     email: '',

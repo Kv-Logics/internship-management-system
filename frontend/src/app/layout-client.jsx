@@ -5,11 +5,24 @@ import { useRouter, usePathname } from 'next/navigation';
 import { AuthContext } from './providers';
 import { LayoutDashboard, Users, UserPlus, LogOut, Database } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
+import api from '../services/api';
 
 export default function ProtectedLayout({ children }) {
   const { user, logout, loading } = useContext(AuthContext);
   const router = useRouter();
   const pathname = usePathname();
+
+  const { data: internships } = useQuery({
+    queryKey: ['layoutInternships', user?.faculty_name],
+    queryFn: async () => {
+      const res = await api.get('/internships/');
+      return res.data;
+    },
+    enabled: !!user && pathname !== '/login'
+  });
+  
+  const count = internships?.length || 0;
 
   useEffect(() => {
     if (!loading && !user && pathname !== '/login') {
@@ -66,9 +79,11 @@ export default function ProtectedLayout({ children }) {
           <Link href="/" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/')}`}>
             <LayoutDashboard size={20} /> <span>Dashboard</span>
           </Link>
-          <Link href="/internships/add" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/internships/add')}`}>
-            <UserPlus size={20} /> <span>Add Intern</span>
-          </Link>
+          {(count < 5 || user?.role === 'admin') && (
+            <Link href="/internships/add" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/internships/add')}`}>
+              <UserPlus size={20} /> <span>Add Intern</span>
+            </Link>
+          )}
           <Link href="/internships" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/internships')}`}>
             <Users size={20} /> <span>Internships</span>
           </Link>
