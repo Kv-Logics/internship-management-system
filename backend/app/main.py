@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI):
             SELECT gen_random_uuid(), 'Dean RC', 'deanrc@nitt.edu', 'dean'
             WHERE NOT EXISTS (SELECT 1 FROM faculties WHERE email = 'deanrc@nitt.edu');
         """))
+    yield
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("generated_certificates", exist_ok=True)
