@@ -117,12 +117,49 @@ async def run_raw_query(
         raise HTTPException(status_code=400, detail="Query string is required.")
         
     try:
-        # Execute raw SQL query
-        result = await db.execute(text(query_str))
+        # Robustly split query string by semicolons while ignoring semicolons inside string literals
+        statements = []
+        current = []
+        in_quote = False
+        in_double_quote = False
+        i = 0
+        while i < len(query_str):
+            char = query_str[i]
+            if char == "'" and (i == 0 or query_str[i-1] != "\\"):
+                in_quote = not in_quote
+            elif char == '"' and (i == 0 or query_str[i-1] != "\\"):
+                in_double_quote = not in_double_quote
+            elif char == ';' and not in_quote and not in_double_quote:
+                stmt_str = "".join(current).strip()
+                if stmt_str:
+                    statements.append(stmt_str)
+                current = []
+                i += 1
+                continue
+            current.append(char)
+            i += 1
+        stmt_str = "".join(current).strip()
+        if stmt_str:
+            statements.append(stmt_str)
+
+        # Execute statements sequentially in a single transaction
+        last_result = None
+        total_rows_affected = 0
         
-        if result.returns_rows:
-            rows = result.fetchall()
-            keys = result.keys()
+        for stmt in statements:
+            # Strip comments and ensure statement is not empty
+            lines = [line.strip() for line in stmt.split("\n") if line.strip() and not line.strip().startswith("--")]
+            cleaned_stmt = "\n".join(lines).strip()
+            if not cleaned_stmt:
+                continue
+                
+            last_result = await db.execute(text(cleaned_stmt))
+            if not last_result.returns_rows:
+                total_rows_affected += (last_result.rowcount or 0)
+        
+        if last_result and last_result.returns_rows:
+            rows = last_result.fetchall()
+            keys = last_result.keys()
             output = []
             for row in rows:
                 row_dict = {}
@@ -132,10 +169,11 @@ async def run_raw_query(
                     else:
                         row_dict[k] = v
                 output.append(row_dict)
+            await db.commit()
             return {"type": "select", "columns": list(keys), "rows": output}
         else:
             await db.commit()
-            return {"type": "mutation", "rowcount": result.rowcount}
+            return {"type": "mutation", "rowcount": total_rows_affected}
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
