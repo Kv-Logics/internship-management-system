@@ -182,105 +182,51 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Progress & Overview Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Progress Card */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-sm lg:col-span-1 flex flex-col justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Mentorship Accomplishment</h3>
-            <p className="text-xs text-gray-500">Ratio of successfully concluded internships</p>
-          </div>
-          
-          <div className="my-8 flex flex-col items-center">
-            <div className="relative flex items-center justify-center">
-              {/* Outer ring */}
-              <svg className="w-36 h-36 transform -rotate-90">
-                <circle cx="72" cy="72" r="60" stroke="#f3f4f6" strokeWidth="12" fill="transparent" />
-                <circle cx="72" cy="72" r="60" stroke="#4f46e5" strokeWidth="12" fill="transparent"
-                  strokeDasharray={376.8}
-                  strokeDashoffset={376.8 - (376.8 * completionRate) / 100}
-                  strokeLinecap="round"
-                  className="transition-all duration-1000 ease-out"
-                />
-              </svg>
-              <div className="absolute text-center">
-                <span className="text-3xl font-black text-gray-800">{completionRate}%</span>
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mt-0.5">Finished</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 rounded-2xl p-4 flex justify-between text-center text-xs">
-            <div>
-              <span className="text-gray-400 block mb-1">Ongoing</span>
-              <span className="font-bold text-gray-800 text-sm">{stats?.ongoing || 0}</span>
-            </div>
-            <div className="border-l border-gray-250"></div>
-            <div>
-              <span className="text-gray-400 block mb-1">Completed</span>
-              <span className="font-bold text-gray-800 text-sm">{stats?.completed || 0}</span>
-            </div>
-            <div className="border-l border-gray-250"></div>
-            <div>
-              <span className="text-gray-400 block mb-1">Success</span>
-              <span className={`font-bold text-sm ${
-                successLabel === 'Perfect' || successLabel === 'Excellent' ? 'text-indigo-600' :
-                successLabel === 'Good' ? 'text-emerald-600' :
-                successLabel === 'Active' ? 'text-amber-600' :
-                'text-gray-500'
-              }`}>{successLabel}</span>
+      {/* Progress & Accomplishment Panel */}
+      <div className="bg-white rounded-3xl p-8 border border-gray-150 shadow-sm flex flex-col md:flex-row justify-between items-center gap-8">
+        <div className="space-y-2 text-center md:text-left">
+          <h3 className="text-xl font-bold text-gray-800">Mentorship Accomplishment</h3>
+          <p className="text-xs text-gray-500">Ratio of successfully concluded student internships</p>
+        </div>
+        
+        <div className="flex flex-col items-center">
+          <div className="relative flex items-center justify-center">
+            {/* Outer ring */}
+            <svg className="w-36 h-36 transform -rotate-90">
+              <circle cx="72" cy="72" r="60" stroke="#f3f4f6" strokeWidth="12" fill="transparent" />
+              <circle cx="72" cy="72" r="60" stroke="#4f46e5" strokeWidth="12" fill="transparent"
+                strokeDasharray={376.8}
+                strokeDashoffset={376.8 - (376.8 * completionRate) / 100}
+                strokeLinecap="round"
+                className="transition-all duration-1000 ease-out"
+              />
+            </svg>
+            <div className="absolute text-center">
+              <span className="text-3xl font-black text-gray-800">{completionRate}%</span>
+              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mt-0.5">Finished</p>
             </div>
           </div>
         </div>
 
-        {/* Recent Internships List */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-sm lg:col-span-2">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-lg font-bold text-gray-800">Recent Registrations</h3>
-              <p className="text-xs text-gray-500">Overview of the last 5 registered students</p>
-            </div>
-            <Link href="/internships" className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center space-x-1">
-              <span>View All Records</span>
-              <ArrowUpRight size={14} />
-            </Link>
+        <div className="bg-gray-50 rounded-2xl p-6 flex flex-col sm:flex-row justify-between gap-8 text-center text-xs border border-gray-150 min-w-[320px]">
+          <div>
+            <span className="text-gray-400 block mb-1 font-semibold uppercase tracking-wider text-[10px]">Ongoing</span>
+            <span className="font-extrabold text-gray-800 text-base">{stats?.ongoing || 0}</span>
           </div>
-
-          <div className="space-y-4">
-            {stats?.recent && stats.recent.length > 0 ? (
-              stats.recent.map((item) => (
-                <div key={item.internship_id} className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100/70 rounded-2xl border border-gray-100 transition-all group">
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-indigo-50 text-indigo-600 p-2.5 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                      <GraduationCap className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-800">{item.intern?.intern_name}</h4>
-                      <p className="text-xs text-gray-400 flex items-center mt-0.5">
-                        <BookOpen size={12} className="mr-1" />
-                        {item.internship_domain}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
-                      new Date(item.end_date) < new Date() 
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
-                        : 'bg-amber-100 text-amber-800 border border-amber-200'
-                    }`}>
-                      {new Date(item.end_date) < new Date() ? 'Completed' : 'Ongoing'}
-                    </span>
-                    <p className="text-[10px] text-gray-400 mt-2 font-medium">
-                      Ends: {new Date(item.end_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-400 text-xs">
-                No recent records found. Click "Add New Intern" to start.
-              </div>
-            )}
+          <div className="hidden sm:block border-l border-gray-200"></div>
+          <div>
+            <span className="text-gray-400 block mb-1 font-semibold uppercase tracking-wider text-[10px]">Completed</span>
+            <span className="font-extrabold text-gray-800 text-base">{stats?.completed || 0}</span>
+          </div>
+          <div className="hidden sm:block border-l border-gray-200"></div>
+          <div>
+            <span className="text-gray-400 block mb-1 font-semibold uppercase tracking-wider text-[10px]">Success Rating</span>
+            <span className={`font-extrabold text-base ${
+              successLabel === 'Perfect' || successLabel === 'Excellent' ? 'text-indigo-600' :
+              successLabel === 'Good' ? 'text-emerald-600' :
+              successLabel === 'Active' ? 'text-amber-600' :
+              'text-gray-500'
+            }`}>{successLabel}</span>
           </div>
         </div>
       </div>
