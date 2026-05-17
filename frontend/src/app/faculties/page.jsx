@@ -543,13 +543,13 @@ export default function FacultyDatabase() {
                 </div>
 
                 {queryResult.type === 'select' ? (
-                  <div className="bg-slate-950 border border-slate-800/80 rounded-2xl overflow-hidden">
-                    <div className="max-h-72 overflow-auto">
+                  <div className="bg-slate-950 border border-slate-800/80 rounded-2xl overflow-hidden w-full">
+                    <div className="max-h-[600px] overflow-auto">
                       <table className="min-w-full divide-y divide-slate-800 text-xs font-mono">
                         <thead className="bg-slate-900">
                           <tr>
                             {queryResult.columns.map((col, idx) => (
-                              <th key={idx} className="px-4 py-3 text-left font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                              <th key={idx} className="px-6 py-4 text-left font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800 whitespace-nowrap">
                                 {col}
                               </th>
                             ))}
@@ -560,7 +560,7 @@ export default function FacultyDatabase() {
                             queryResult.rows.map((row, rowIdx) => (
                               <tr key={rowIdx} className="hover:bg-slate-900/50 transition-colors">
                                 {queryResult.columns.map((col, colIdx) => (
-                                  <td key={colIdx} className="px-4 py-2.5 text-slate-350 max-w-xs truncate" title={String(row[col])}>
+                                  <td key={colIdx} className="px-6 py-3.5 text-slate-300 whitespace-nowrap" title={String(row[col])}>
                                     {row[col] !== null ? String(row[col]) : <em className="text-slate-600">null</em>}
                                   </td>
                                 ))}
@@ -568,7 +568,7 @@ export default function FacultyDatabase() {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan={queryResult.columns.length} className="text-center py-6 text-slate-500 italic">
+                              <td colSpan={queryResult.columns.length} className="text-center py-8 text-slate-500 italic">
                                 Result set is empty.
                               </td>
                             </tr>
