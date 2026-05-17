@@ -42,7 +42,7 @@ async def read_internships(skip: int = 0, limit: int = 100, search: Optional[str
         joinedload(Internship.faculty)
     ).join(Intern)
     
-    if getattr(current_user, "role", "faculty") != "dean":
+    if getattr(current_user, "role", "faculty") not in ("dean", "admin"):
         query = query.filter(Internship.faculty_id == current_user.faculty_id)
     
     if search:
@@ -67,7 +67,7 @@ async def read_internship(internship_id: UUID, db: AsyncSession = Depends(get_db
     internship = result.scalars().first()
     if internship is None:
         raise HTTPException(status_code=404, detail="Internship not found")
-    if getattr(current_user, "role", "faculty") != "dean" and internship.faculty_id != current_user.faculty_id:
+    if getattr(current_user, "role", "faculty") not in ("dean", "admin") and internship.faculty_id != current_user.faculty_id:
         raise HTTPException(status_code=403, detail="Not authorized to view this internship")
 
     return internship
@@ -83,7 +83,7 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
     internship = result.scalars().first()
     if not internship:
         raise HTTPException(status_code=404, detail="Internship not found")
-    if getattr(current_user, "role", "faculty") != "dean" and internship.faculty_id != current_user.faculty_id:
+    if getattr(current_user, "role", "faculty") not in ("dean", "admin") and internship.faculty_id != current_user.faculty_id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this internship")
     
     update_data = internship_update.model_dump(exclude_unset=True)
@@ -111,7 +111,7 @@ async def delete_internship(internship_id: UUID, db: AsyncSession = Depends(get_
     internship = result.scalars().first()
     if not internship:
         raise HTTPException(status_code=404, detail="Internship not found")
-    if getattr(current_user, "role", "faculty") != "dean" and internship.faculty_id != current_user.faculty_id:
+    if getattr(current_user, "role", "faculty") not in ("dean", "admin") and internship.faculty_id != current_user.faculty_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this internship")
     
     await db.delete(internship)

@@ -8,6 +8,11 @@ from app.models.faculty import Faculty
 from app.schemas.faculty import FacultyCreate, FacultyResponse, OTPRequest, OTPVerifyRequest
 from app.schemas.token import Token
 from app.core.security import create_access_token
+from pydantic import BaseModel
+
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
 
 router = APIRouter()
 
@@ -59,3 +64,37 @@ async def verify_otp(request: OTPVerifyRequest, db: AsyncSession = Depends(get_d
     
     access_token = create_access_token(data={"sub": faculty.email, "role": faculty.role})
     return {"access_token": access_token, "token_type": "bearer", "faculty_name": faculty.faculty_name}
+
+@router.post("/admin/login")
+async def admin_login(request: AdminLoginRequest):
+    if request.username == "admin" and request.password == "muruga":
+        access_token = create_access_token(data={"sub": "admin@nitt.edu", "role": "admin"})
+        return {"access_token": access_token, "token_type": "bearer", "faculty_name": "Administrator"}
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid administrator credentials"
+    )
+
+from app.api.deps import get_current_faculty
+from app.schemas.faculty import FacultyResponse
+from typing import List
+from uuid import UUID
+
+@router.get("/faculties", response_model=List[FacultyResponse])
+async def list_faculties(db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+    if getattr(current_user, "role", "faculty") not in ("dean", "admin"):
+        raise HTTPException(status_code=403, detail="Not authorized to view faculties")
+    result = await db.execute(select(Faculty))
+    return result.scalars().all()
+
+@router.delete("/faculties/{faculty_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_faculty(faculty_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+    if getattr(current_user, "role", "faculty") != "admin":
+        raise HTTPException(status_code=403, detail="Only system administrators can delete faculty records")
+    result = await db.execute(select(Faculty).filter(Faculty.faculty_id == faculty_id))
+    faculty = result.scalars().first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+    await db.delete(faculty)
+    await db.commit()
+    return None
