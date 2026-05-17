@@ -15,17 +15,23 @@ router = APIRouter()
 
 @router.post("/{intern_id}", response_model=InternshipResponse)
 async def create_internship(intern_id: UUID, internship: InternshipCreate, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+    target_faculty_id = current_user.faculty_id
+    
+    if current_user.role in ("admin", "dean") and internship.faculty_id is not None:
+        target_faculty_id = internship.faculty_id
+
     # Check maximum intern limit
-    count_result = await db.execute(select(func.count()).select_from(Internship).filter(Internship.faculty_id == current_user.faculty_id))
+    count_result = await db.execute(select(func.count()).select_from(Internship).filter(Internship.faculty_id == target_faculty_id))
     if count_result.scalar() >= 5:
-        raise HTTPException(status_code=400, detail="Faculty can only mentor a maximum of 5 interns.")
+        raise HTTPException(status_code=400, detail="The chosen faculty mentor has already reached the maximum limit of 5 interns.")
 
     internship_data = internship.model_dump()
     internship_data.pop("faculty_mentor", None)
-    internship_data["faculty_id"] = current_user.faculty_id
+    internship_data.pop("faculty_id", None)
 
     new_internship = Internship(
         intern_id=intern_id,
+        faculty_id=target_faculty_id,
         **internship_data
     )
     db.add(new_internship)

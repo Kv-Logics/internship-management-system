@@ -3,7 +3,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../../services/api';
 import toast from 'react-hot-toast';
-import { User, Mail, Phone, BookOpen, GraduationCap, Calendar, Award, Edit3, ArrowRight, CheckCircle } from 'lucide-react';
+import { User, Mail, Phone, BookOpen, GraduationCap, Calendar, Award, Edit3, ArrowRight, CheckCircle, UserCheck } from 'lucide-react';
 import { AuthContext } from '../../providers';
 
 export default function AddInternship() {
@@ -40,6 +40,29 @@ export default function AddInternship() {
     end_date: '',
     remarks: ''
   });
+  
+  const [faculties, setFaculties] = useState([]);
+  const [selectedFacultyId, setSelectedFacultyId] = useState('');
+
+  useEffect(() => {
+    const fetchFacultiesList = async () => {
+      if (user?.role === 'admin') {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await api.get('/auth/faculties', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setFaculties(res.data);
+          if (res.data.length > 0) {
+            setSelectedFacultyId(res.data[0].faculty_id);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    };
+    fetchFacultiesList();
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -84,7 +107,8 @@ export default function AddInternship() {
         internship_mode: formData.internship_mode,
         start_date: formData.start_date,
         end_date: formData.end_date,
-        remarks: formData.remarks || ''
+        remarks: formData.remarks || '',
+        faculty_id: user?.role === 'admin' ? selectedFacultyId : undefined
       });
 
       toast.success('Intern and internship registered successfully!', { id: toastId });
@@ -225,6 +249,28 @@ export default function AddInternship() {
           </div>
 
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {user?.role === 'admin' && (
+              <div className="md:col-span-2 bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100/50 mb-2">
+                <label className="block text-sm font-bold text-indigo-900 mb-2 flex items-center">
+                  <UserCheck size={18} className="mr-1.5 text-indigo-600 animate-pulse" />
+                  Assign Faculty Mentor
+                </label>
+                <p className="text-xs text-indigo-700/80 mb-3">As an administrator, select which faculty member will act as the official mentor for this student.</p>
+                <select
+                  value={selectedFacultyId}
+                  onChange={(e) => setSelectedFacultyId(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white shadow-sm font-semibold text-gray-700 transition-all"
+                  required
+                >
+                  {faculties.map((fac) => (
+                    <option key={fac.faculty_id} value={fac.faculty_id}>
+                      {fac.faculty_name} ({fac.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Project / Internship Title</label>
               <div className="relative">

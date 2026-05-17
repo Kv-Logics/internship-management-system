@@ -16,7 +16,7 @@ class InternshipBase(BaseModel):
     remarks: Optional[str] = None
 
 class InternshipCreate(InternshipBase):
-    pass
+    faculty_id: Optional[UUID] = None
 
 class InternshipUpdate(InternshipBase):
     intern_email: Optional[EmailStr] = None
