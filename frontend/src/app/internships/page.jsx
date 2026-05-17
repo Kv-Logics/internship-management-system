@@ -440,7 +440,7 @@ export default function InternshipList() {
 
       {/* ==================== PREVIEW MODAL ==================== */}
       {previewItem && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+        <div className="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
           <div className="bg-white rounded-3xl w-full max-w-2xl border border-gray-200 overflow-hidden shadow-2xl animate-scaleUp">
             
             {/* Header */}
@@ -565,7 +565,7 @@ export default function InternshipList() {
 
       {/* ==================== FULL EDIT MODAL ==================== */}
       {editingItem && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+        <div className="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
           <div className="bg-white rounded-3xl w-full max-w-2xl border border-gray-200 overflow-hidden shadow-2xl animate-scaleUp">
             
             {/* Header */}
