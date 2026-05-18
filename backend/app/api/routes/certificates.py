@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 from uuid import UUID
 import os
@@ -28,6 +29,10 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
     if not internship:
         raise HTTPException(status_code=404, detail="Internship not found")
     
+    # Allow admin to generate preview for ongoing internships, but block others.
+    if internship.end_date > datetime.utcnow().date() and getattr(current_user, "role", "faculty") != 'admin':
+        raise HTTPException(status_code=400, detail="Cannot generate certificate for an ongoing internship.")
+    
     intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
     intern = intern_result.scalars().first()
     
@@ -42,14 +47,18 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
     cert_result = await db.execute(select(Certificate).filter(Certificate.internship_id == internship_id))
     cert = cert_result.scalars().first()
     
+    certificate_id_to_fetch = None
     needs_commit = False
     if not cert:
         # Brand new certificate
         cert_number = f"NITT-{secrets.token_hex(6).upper()}"
         cert = Certificate(internship_id=internship_id, certificate_path=file_path, certificate_number=cert_number)
         db.add(cert)
+        await db.flush()
+        certificate_id_to_fetch = cert.certificate_id
         needs_commit = True
     else:
+        certificate_id_to_fetch = cert.certificate_id
         # Upgrade legacy sequential IDs (e.g. IMS-2026-0001) to secure ones
         if not cert.certificate_number or cert.certificate_number.startswith("IMS-"):
             cert.certificate_number = f"NITT-{secrets.token_hex(6).upper()}"
@@ -59,9 +68,10 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
             cert.certificate_path = file_path
             needs_commit = True
 
+    final_cert_number = cert.certificate_number
+
     if needs_commit:
         await db.commit()
-        await db.refresh(cert)
 
     await asyncio.to_thread(
         generate_certificate_pdf,
@@ -72,12 +82,29 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
         start_date=internship.start_date,
         end_date=internship.end_date,
         output_path=file_path,
-        certificate_number=cert.certificate_number,
+        certificate_number=final_cert_number,
         mentor_name=mentor_name
     )
     
-    return cert
+    # Re-fetch the certificate with all relationships eagerly loaded
+    # to satisfy the Pydantic response_model and avoid MissingGreenlet error.
+    result = await db.execute(
+        select(Certificate)
+        .options(
+            joinedload(Certificate.internship).options(
+                joinedload(Internship.intern),
+                joinedload(Internship.faculty)
+            )
+        )
+        .filter(Certificate.certificate_id == certificate_id_to_fetch)
+    )
+    
+    final_cert = result.scalars().first()
 
+    if not final_cert:
+        raise HTTPException(status_code=500, detail="Failed to retrieve certificate after generation.")
+
+    return final_cert
 def send_email_sync(sender_email, sender_password, msg):
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
         smtp.login(sender_email, sender_password)

@@ -35,9 +35,19 @@ async def create_internship(intern_id: UUID, internship: InternshipCreate, db: A
         **internship_data
     )
     db.add(new_internship)
+    await db.flush()
+    internship_id = new_internship.internship_id
     await db.commit()
-    await db.refresh(new_internship)
-    return new_internship
+    
+    # Fetch the newly created internship with relationships eagerly loaded to prevent MissingGreenlet error
+    result = await db.execute(select(Internship).options(
+        joinedload(Internship.documents),
+        joinedload(Internship.certificate),
+        joinedload(Internship.intern),
+        joinedload(Internship.faculty)
+    ).filter(Internship.internship_id == internship_id))
+    
+    return result.scalars().first()
 
 @router.get("/", response_model=List[InternshipResponse])
 async def read_internships(skip: int = 0, limit: int = 100, search: Optional[str] = None, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
@@ -124,8 +134,15 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
         setattr(internship, key, value)
         
     await db.commit()
-    await db.refresh(internship)
-    return internship
+    
+    # Re-fetch the updated internship with relationships eagerly loaded
+    result = await db.execute(select(Internship).options(
+        joinedload(Internship.documents),
+        joinedload(Internship.certificate),
+        joinedload(Internship.intern),
+        joinedload(Internship.faculty)
+    ).filter(Internship.internship_id == internship_id))
+    return result.scalars().first()
 
 @router.delete("/{internship_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_internship(internship_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):

@@ -5,6 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import { LayoutDashboard, Users, Clock, Award, ArrowUpRight, TrendingUp, Calendar, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { AuthContext } from './providers';
+import DashboardStats from '../components/dashboard/DashboardStats';
+import MentorshipProgress from '../components/dashboard/MentorshipProgress';
+import AdminOperationsPanel from '../components/dashboard/AdminOperationsPanel';
 
 const fetchDashboardStats = async () => {
   const res = await api.get('/internships/');
@@ -99,172 +102,10 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Stats Cards */}
-      <div className={`grid grid-cols-1 ${user?.role === 'admin' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-6`}>
-        {/* Total Card */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden">
-          <div className="absolute right-0 bottom-0 w-24 h-24 bg-indigo-50 rounded-tl-full -mr-2 -mb-2 transition-all duration-300 group-hover:scale-110"></div>
-          <div className="flex items-center space-x-4 relative z-10">
-            <div className="bg-indigo-100 text-indigo-600 p-3.5 rounded-2xl">
-              <Users size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Internships</p>
-              <h4 className="text-3xl font-black text-gray-800 mt-1">{stats?.total || 0}</h4>
-            </div>
-          </div>
-          <div className="mt-6 flex items-center text-xs text-indigo-600 font-bold relative z-10">
-            <TrendingUp size={14} className="mr-1" />
-            <span>Active mentored student records</span>
-          </div>
-        </div>
+      <DashboardStats stats={stats} user={user} facultiesCount={facultiesCount} />
+      <MentorshipProgress stats={stats} completionRate={completionRate} />
 
-        {/* Ongoing Card */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden">
-          <div className="absolute right-0 bottom-0 w-24 h-24 bg-amber-50 rounded-tl-full -mr-2 -mb-2 transition-all duration-300 group-hover:scale-110"></div>
-          <div className="flex items-center space-x-4 relative z-10">
-            <div className="bg-amber-100 text-amber-600 p-3.5 rounded-2xl">
-              <Clock size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Ongoing Projects</p>
-              <h4 className="text-3xl font-black text-gray-800 mt-1">{stats?.ongoing || 0}</h4>
-            </div>
-          </div>
-          <div className="mt-6 flex items-center text-xs text-amber-600 font-bold relative z-10">
-            <Clock size={14} className="mr-1 animate-pulse" />
-            <span>Currently under active mentoring</span>
-          </div>
-        </div>
-
-        {/* Completed Card */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden">
-          <div className="absolute right-0 bottom-0 w-24 h-24 bg-emerald-50 rounded-tl-full -mr-2 -mb-2 transition-all duration-300 group-hover:scale-110"></div>
-          <div className="flex items-center space-x-4 relative z-10">
-            <div className="bg-emerald-100 text-emerald-600 p-3.5 rounded-2xl">
-              <Award size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Completed Projects</p>
-              <h4 className="text-3xl font-black text-gray-800 mt-1">{stats?.completed || 0}</h4>
-            </div>
-          </div>
-          <div className="mt-6 flex items-center text-xs text-emerald-600 font-bold relative z-10">
-            <Award size={14} className="mr-1" />
-            <span>Eligible for certificate delivery</span>
-          </div>
-        </div>
-
-        {/* Admin Specific Faculty Mentors Card */}
-        {user?.role === 'admin' && (
-          <div className="bg-white rounded-3xl p-6 border border-gray-150 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden">
-            <div className="absolute right-0 bottom-0 w-24 h-24 bg-purple-50 rounded-tl-full -mr-2 -mb-2 transition-all duration-300 group-hover:scale-110"></div>
-            <div className="flex items-center space-x-4 relative z-10">
-              <div className="bg-purple-100 text-purple-600 p-3.5 rounded-2xl">
-                <Users size={24} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">System Mentors</p>
-                <h4 className="text-3xl font-black text-gray-800 mt-1">{facultiesCount || 0}</h4>
-              </div>
-            </div>
-            <div className="mt-6 flex items-center text-xs text-purple-600 font-bold relative z-10">
-              <Award size={14} className="mr-1" />
-              <span>Registered faculty database logins</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Progress & Accomplishment Panel */}
-      <div className="bg-white rounded-3xl p-8 border border-gray-150 shadow-sm flex flex-col md:flex-row justify-between items-center gap-8">
-        <div className="space-y-2 text-center md:text-left">
-          <h3 className="text-xl font-bold text-gray-800">Mentorship Accomplishment</h3>
-          <p className="text-xs text-gray-500">Ratio of successfully concluded student internships</p>
-        </div>
-        
-        <div className="flex flex-col items-center">
-          <div className="relative flex items-center justify-center">
-            {/* Outer ring */}
-            <svg className="w-36 h-36 transform -rotate-90">
-              <circle cx="72" cy="72" r="60" stroke="#f3f4f6" strokeWidth="12" fill="transparent" />
-              <circle cx="72" cy="72" r="60" stroke="#4f46e5" strokeWidth="12" fill="transparent"
-                strokeDasharray={376.8}
-                strokeDashoffset={376.8 - (376.8 * completionRate) / 100}
-                strokeLinecap="round"
-                className="transition-all duration-1000 ease-out"
-              />
-            </svg>
-            <div className="absolute text-center">
-              <span className="text-3xl font-black text-gray-800">{completionRate}%</span>
-              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mt-0.5">Finished</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gray-50 rounded-2xl p-6 flex flex-col sm:flex-row justify-between gap-8 text-center text-xs border border-gray-150 min-w-[320px]">
-          <div>
-            <span className="text-gray-400 block mb-1 font-semibold uppercase tracking-wider text-[10px]">Ongoing</span>
-            <span className="font-extrabold text-gray-800 text-base">{stats?.ongoing || 0}</span>
-          </div>
-          <div className="hidden sm:block border-l border-gray-200"></div>
-          <div>
-            <span className="text-gray-400 block mb-1 font-semibold uppercase tracking-wider text-[10px]">Completed</span>
-            <span className="font-extrabold text-gray-800 text-base">{stats?.completed || 0}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Admin Database & Systems Operations Panel */}
-      {user?.role === 'admin' && (
-        <div className="bg-gradient-to-tr from-indigo-950 via-purple-950 to-slate-900 rounded-3xl p-8 text-white border border-white/5 shadow-2xl relative overflow-hidden">
-          <div className="absolute right-0 bottom-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mb-32"></div>
-          <div className="relative z-10 space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <h3 className="text-xl font-extrabold tracking-tight">Database Systems & Control Operations</h3>
-                <p className="text-xs text-indigo-300 mt-1">Real-time diagnostics and structural configurations for your PostgreSQL database.</p>
-              </div>
-              <Link href="/faculties" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all flex items-center space-x-1">
-                <span>Manage Faculty Database</span>
-                <ArrowUpRight size={14} />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/10">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Migration Engine</span>
-                <h4 className="text-sm font-bold">SQL Database Schema</h4>
-                <p className="text-xs text-slate-300 leading-relaxed">FastAPI Lifespan migrations are fully active. Structural columns and retrofitting backfills successfully synchronized.</p>
-                <div className="pt-2 text-xs font-semibold text-emerald-400 flex items-center">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-1.5 animate-ping"></span>
-                  <span>Operational & Healthy</span>
-                </div>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400">Enforcement Rules</span>
-                <h4 className="text-sm font-bold">Global Student Cap</h4>
-                <p className="text-xs text-slate-300 leading-relaxed">Maximum of 5 interns per faculty mentor strictly governed. Frontend elements and direct routing guards activated.</p>
-                <div className="pt-2 text-xs font-semibold text-emerald-400 flex items-center">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-1.5 animate-ping"></span>
-                  <span>Limits Enforced</span>
-                </div>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-pink-400">Security Privileges</span>
-                <h4 className="text-sm font-bold">Administrator Override</h4>
-                <p className="text-xs text-slate-300 leading-relaxed">Full global access authorization enabled. Bypasses individual faculty scopes to grant complete DB management rights.</p>
-                <div className="pt-2 text-xs font-semibold text-pink-400 flex items-center">
-                  <span className="w-2 h-2 bg-pink-500 rounded-full mr-1.5 animate-pulse"></span>
-                  <span>Override Active</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {user?.role === 'admin' && <AdminOperationsPanel />}
     </div>
   );
 }
