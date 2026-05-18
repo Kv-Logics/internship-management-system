@@ -142,11 +142,34 @@ export default function InternshipList() {
     }
   };
 
-  const handleSendEmail = async (id, e) => {
+  const handlePreviewCertificate = async (item, e) => {
+    if (e) e.stopPropagation();
+    try {
+      let certPath = item.certificate?.certificate_path;
+      if (!certPath) {
+        const loadId = toast.loading('Generating certificate...');
+        const res = await api.post(`/certificates/generate/${item.internship_id}`);
+        certPath = res.data.certificate_path;
+        toast.success('Certificate generated successfully!', { id: loadId });
+        refreshList();
+      }
+      const url = `${api.defaults.baseURL}/certificates/view/${item.internship_id}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to preview certificate.');
+    }
+  };
+
+  const handleSendEmail = async (item, e) => {
     if (e) e.stopPropagation();
     const loadingToast = toast.loading('Sending digital certificate via email...');
     try {
-      await api.post(`/certificates/email/${id}`);
+      if (!item.certificate) {
+        await api.post(`/certificates/generate/${item.internship_id}`);
+        refreshList();
+      }
+      await api.post(`/certificates/email/${item.internship_id}`);
       toast.success('Official certificate email sent to student successfully!', { id: loadingToast });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to send certificate email.', { id: loadingToast });
@@ -282,8 +305,8 @@ export default function InternshipList() {
                     {/* Student Profile */}
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="flex items-center space-x-3">
-                        <div className="h-10 w-10 bg-indigo-100/70 text-indigo-700 flex items-center justify-center rounded-xl font-extrabold text-sm uppercase shrink-0">
-                          {item.intern?.intern_name?.slice(0, 2) || 'ST'}
+                        <div className="h-10 w-10 bg-indigo-100/70 text-indigo-700 flex items-center justify-center rounded-xl shrink-0">
+                          <User size={18} />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-gray-800">{item.intern?.intern_name || 'N/A'}</div>
@@ -345,7 +368,7 @@ export default function InternshipList() {
                           {item.documents?.map(doc => (
                             <a 
                               key={doc.document_id} 
-                              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/${doc.file_path}`} 
+                              href={`${api.defaults.baseURL.replace(/\/api\/?$/, '')}/${doc.file_path}`} 
                               target="_blank" 
                               rel="noreferrer" 
                               className="inline-flex items-center text-[9px] text-emerald-600 hover:text-emerald-800 font-bold bg-emerald-50 border border-emerald-150 p-1 px-2 rounded-lg"
@@ -380,28 +403,18 @@ export default function InternshipList() {
                         </button>
 
                         {/* Generate Cert / Action buttons */}
-                        {!item.certificate ? (
-                          status === 'complete' || status === 'pending' ? (
-                            <button 
-                              onClick={(e) => handleGenerateCertificate(item.internship_id, e)} 
-                              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
-                            >
-                              Issue Cert
-                            </button>
-                          ) : null
-                        ) : (
+                        {/* Generate Cert / Action buttons */}
+                        {(status === 'complete' || status === 'pending') && (
                           <div className="flex space-x-2">
-                            <a 
-                              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/${item.certificate.certificate_path}`} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-100 rounded-lg transition-all"
-                              title="Download Signed Certificate"
-                            >
-                              <Download size={15} />
-                            </a>
                             <button 
-                              onClick={(e) => handleSendEmail(item.internship_id, e)} 
+                              onClick={(e) => handlePreviewCertificate(item, e)} 
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-100 rounded-lg transition-all"
+                              title="Preview Certificate"
+                            >
+                              <Eye size={15} />
+                            </button>
+                            <button 
+                              onClick={(e) => handleSendEmail(item, e)} 
                               className="p-1.5 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-lg transition-all"
                               title="Email Cert to Student"
                             >
@@ -523,7 +536,7 @@ export default function InternshipList() {
                     previewItem.documents.map((doc) => (
                       <a 
                         key={doc.document_id} 
-                        href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/${doc.file_path}`}
+                        href={`${api.defaults.baseURL.replace(/\/api\/?$/, '')}/${doc.file_path}`}
                         target="_blank"
                         rel="noreferrer"
                         className="flex items-center space-x-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold transition-all"
@@ -550,7 +563,18 @@ export default function InternshipList() {
             </div>
 
             {/* Footer */}
-            <div className="bg-gray-50 border-t border-gray-150 p-5 px-6 flex justify-end space-x-3">
+            <div className="bg-gray-50 border-t border-gray-150 p-5 px-6 flex justify-between items-center space-x-3">
+              <div>
+                {(getRecordStatus(previewItem) === 'complete' || getRecordStatus(previewItem) === 'pending') && (
+                  <button
+                    onClick={(e) => handlePreviewCertificate(previewItem, e)}
+                    className="flex items-center space-x-1.5 px-5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all cursor-pointer"
+                  >
+                    <Eye size={14} />
+                    <span>Preview Cert</span>
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => setPreviewItem(null)}
                 className="px-5 py-2.5 bg-white hover:bg-gray-100 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 transition-all cursor-pointer"

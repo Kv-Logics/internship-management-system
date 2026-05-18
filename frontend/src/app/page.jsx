@@ -76,13 +76,7 @@ export default function Dashboard() {
 
   const completionRate = stats?.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
-  let successLabel = 'N/A';
-  if (stats?.total > 0) {
-    if (completionRate >= 90) successLabel = 'Perfect';
-    else if (completionRate >= 75) successLabel = 'Excellent';
-    else if (completionRate >= 50) successLabel = 'Good';
-    else successLabel = 'Active';
-  }
+
 
   return (
     <div className="space-y-8 py-4">
@@ -217,16 +211,6 @@ export default function Dashboard() {
           <div>
             <span className="text-gray-400 block mb-1 font-semibold uppercase tracking-wider text-[10px]">Completed</span>
             <span className="font-extrabold text-gray-800 text-base">{stats?.completed || 0}</span>
-          </div>
-          <div className="hidden sm:block border-l border-gray-200"></div>
-          <div>
-            <span className="text-gray-400 block mb-1 font-semibold uppercase tracking-wider text-[10px]">Success Rating</span>
-            <span className={`font-extrabold text-base ${
-              successLabel === 'Perfect' || successLabel === 'Excellent' ? 'text-indigo-600' :
-              successLabel === 'Good' ? 'text-emerald-600' :
-              successLabel === 'Active' ? 'text-amber-600' :
-              'text-gray-500'
-            }`}>{successLabel}</span>
           </div>
         </div>
       </div>

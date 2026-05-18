@@ -29,6 +29,7 @@ class InternshipUpdate(InternshipBase):
 class InternshipResponse(InternshipBase):
     internship_id: UUID
     intern_id: UUID
+    faculty_id: Optional[UUID] = None
     intern: Optional[InternResponse] = None
     faculty: Optional[FacultyResponse] = None
     documents: Optional[List[DocumentResponse]] = []

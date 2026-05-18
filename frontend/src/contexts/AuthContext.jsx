@@ -11,8 +11,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const facultyName = localStorage.getItem('faculty_name');
+    const role = localStorage.getItem('role');
     if (token && facultyName) {
-      setUser({ faculty_name: facultyName });
+      setUser({ faculty_name: facultyName, role: role || 'faculty' });
     }
     setLoading(false);
   }, []);
@@ -26,17 +27,27 @@ export const AuthProvider = ({ children }) => {
     const response = await api.post('/auth/verify-otp', { email, otp });
     localStorage.setItem('token', response.data.access_token);
     localStorage.setItem('faculty_name', response.data.faculty_name);
-    setUser({ faculty_name: response.data.faculty_name });
+    localStorage.setItem('role', 'faculty');
+    setUser({ faculty_name: response.data.faculty_name, role: 'faculty' });
+  };
+
+  const adminLogin = async (username, password) => {
+    const response = await api.post('/auth/admin/login', { username, password });
+    localStorage.setItem('token', response.data.access_token);
+    localStorage.setItem('faculty_name', response.data.faculty_name);
+    localStorage.setItem('role', 'admin');
+    setUser({ faculty_name: response.data.faculty_name, role: 'admin' });
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('faculty_name');
+    localStorage.removeItem('role');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, sendOtp, verifyOtp, logout, loading }}>
+    <AuthContext.Provider value={{ user, sendOtp, verifyOtp, adminLogin, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

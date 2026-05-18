@@ -19,7 +19,11 @@ async def upload_document(
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_faculty)
 ):
-    file_location = f"uploads/{internship_id}_{document_type}_{file.filename}"
+    # Sanitize filename to prevent path traversal (e.g. ../../etc/passwd)
+    safe_filename = os.path.basename(file.filename).replace("..", "").strip()
+    if not safe_filename:
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+    file_location = f"uploads/{internship_id}_{document_type}_{safe_filename}"
     async with aiofiles.open(file_location, "wb+") as file_object:
         await file_object.write(await file.read())
     new_doc = Document(internship_id=internship_id, document_type=document_type, file_path=file_location)

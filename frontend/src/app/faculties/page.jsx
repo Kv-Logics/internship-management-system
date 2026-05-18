@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { 
   Search, Trash2, Mail, ShieldAlert, Award, UserCheck, RefreshCw, 
   ChevronRight, ArrowLeft, Calendar, BookOpen, GraduationCap, Clock, FileText, Download,
-  Database, Play, AlertCircle, CheckCircle2, Server, HelpCircle, Columns, ChevronDown
+  Database, Play, AlertCircle, CheckCircle2, Server, HelpCircle, Columns, ChevronDown, Eye
 } from 'lucide-react';
 
 export default function FacultyDatabase() {
@@ -143,23 +143,25 @@ export default function FacultyDatabase() {
     }
   };
 
-  const handleDownloadCertificate = async (certificatePath) => {
+  const handlePreviewCertificate = async (item, e) => {
+    if (e) e.stopPropagation();
     try {
-      const token = localStorage.getItem('token');
-      const response = await api.get(`/certificates/download/${encodeURIComponent(certificatePath)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob'
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', certificatePath.split('/').pop());
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      let certPath = item.certificate?.certificate_path;
+      if (!certPath) {
+        const loadId = toast.loading('Generating certificate...');
+        const token = localStorage.getItem('token');
+        const res = await api.post(`/certificates/generate/${item.internship_id}`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        certPath = res.data.certificate_path;
+        toast.success('Certificate generated successfully!', { id: loadId });
+        fetchDatabase();
+      }
+      const url = `${api.defaults.baseURL}/certificates/view/${item.internship_id}`;
+      window.open(url, '_blank');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to download certificate.');
+      toast.error('Failed to preview certificate.');
     }
   };
 
@@ -169,7 +171,7 @@ export default function FacultyDatabase() {
     (fac.role || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const facultyInternships = internships.filter(item => item.faculty_id === selectedFaculty?.faculty_id);
+  const facultyInternships = internships.filter(item => (item.faculty_id || item.faculty?.faculty_id) === selectedFaculty?.faculty_id);
 
   // Database Schema specifications for direct visual navigator
   const dbSchema = [
@@ -294,24 +296,14 @@ export default function FacultyDatabase() {
                     </div>
 
                     <div className="flex items-center gap-3 flex-wrap md:justify-end">
-                      {item.certificate ? (
+                      {(item.certificate || new Date(item.end_date) < new Date()) && (
                         <button
-                          onClick={() => handleDownloadCertificate(item.certificate.certificate_path)}
+                          onClick={(e) => handlePreviewCertificate(item, e)}
                           className="flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
                         >
-                          <Download size={14} />
-                          <span>Get Certificate</span>
+                          <Eye size={14} />
+                          <span>Preview Cert</span>
                         </button>
-                      ) : (
-                        new Date(item.end_date) < new Date() && (
-                          <button
-                            onClick={() => handleGenerateCertificate(item.internship_id)}
-                            className="flex items-center space-x-1.5 px-3.5 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all"
-                          >
-                            <Award size={14} />
-                            <span>Issue Certificate</span>
-                          </button>
-                        )
                       )}
 
                       <button
@@ -412,7 +404,7 @@ export default function FacultyDatabase() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredFaculties.length > 0 ? (
               filteredFaculties.map((fac) => {
-                const facInternsCount = internships.filter(item => item.faculty_id === fac.faculty_id).length;
+                const facInternsCount = internships.filter(item => (item.faculty_id || item.faculty?.faculty_id) === fac.faculty_id).length;
                 return (
                   <div 
                     key={fac.faculty_id}

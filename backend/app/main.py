@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -27,9 +30,12 @@ os.makedirs("uploads", exist_ok=True)
 os.makedirs("generated_certificates", exist_ok=True)
 app = FastAPI(title="Internship Management System", lifespan=lifespan)
 
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+origins = [url.strip() for url in frontend_url.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

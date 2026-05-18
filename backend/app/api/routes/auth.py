@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-import random
+import secrets
+import os
+import time
 
 from app.db.database import get_db
 from app.models.faculty import Faculty
@@ -42,10 +44,12 @@ async def send_otp(request: OTPRequest, db: AsyncSession = Depends(get_db)):
     if not faculty:
         raise HTTPException(status_code=404, detail="Email not found in employee records")
     
-    otp = str(random.randint(100000, 999999))
-    OTP_STORE[request.email] = otp
+    # Use cryptographically secure random number generator
+    otp = f"{secrets.randbelow(900000) + 100000}"
+    OTP_STORE[request.email] = {"otp": otp, "expires": time.time() + 300}  # 5 min expiry
     
-    # Returning OTP in response for auto-fill functionality as requested
+    # In production, send OTP via email/SMS. For dev, log to console.
+    print(f"[DEV OTP] {request.email}: {otp}")
     return {"message": "OTP sent successfully", "otp": otp}
 
 @router.post("/verify-otp", response_model=Token)
@@ -55,11 +59,16 @@ async def verify_otp(request: OTPVerifyRequest, db: AsyncSession = Depends(get_d
     if not faculty:
         raise HTTPException(status_code=404, detail="Email not found")
         
-    stored_otp = OTP_STORE.get(request.email)
-    if not stored_otp or stored_otp != request.otp:
-        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+    stored = OTP_STORE.get(request.email)
+    if not stored:
+        raise HTTPException(status_code=401, detail="No OTP was requested for this email. Please request a new one.")
+    if time.time() > stored["expires"]:
+        del OTP_STORE[request.email]
+        raise HTTPException(status_code=401, detail="OTP has expired. Please request a new one.")
+    if stored["otp"] != request.otp:
+        raise HTTPException(status_code=401, detail="Invalid OTP. Please check and try again.")
         
-    # Clean up OTP after use
+    # Clean up OTP after successful use
     del OTP_STORE[request.email]
     
     access_token = create_access_token(data={"sub": faculty.email, "role": faculty.role})
@@ -67,7 +76,11 @@ async def verify_otp(request: OTPVerifyRequest, db: AsyncSession = Depends(get_d
 
 @router.post("/admin/login")
 async def admin_login(request: AdminLoginRequest):
-    if request.username == "admin" and request.password == "muruga":
+    admin_user = os.getenv("ADMIN_USERNAME", "admin")
+    admin_pass = os.getenv("ADMIN_PASSWORD")
+    if not admin_pass:
+        raise HTTPException(status_code=500, detail="Admin credentials not configured on server.")
+    if secrets.compare_digest(request.username, admin_user) and secrets.compare_digest(request.password, admin_pass):
         access_token = create_access_token(data={"sub": "admin@nitt.edu", "role": "admin"})
         return {"access_token": access_token, "token_type": "bearer", "faculty_name": "Administrator"}
     raise HTTPException(

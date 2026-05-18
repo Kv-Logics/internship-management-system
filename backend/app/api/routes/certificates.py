@@ -8,11 +8,13 @@ from datetime import datetime
 import smtplib
 from email.message import EmailMessage
 import asyncio
+import secrets
 
 from app.db.database import get_db
 from app.models.certificate import Certificate
 from app.models.internship import Internship
 from app.models.intern import Intern
+from app.models.faculty import Faculty
 from app.schemas.certificate import CertificateResponse
 from app.api.deps import get_current_faculty
 from app.services.certificate_service import generate_certificate_pdf
@@ -29,6 +31,10 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
     intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
     intern = intern_result.scalars().first()
     
+    faculty_result = await db.execute(select(Faculty).filter(Faculty.faculty_id == internship.faculty_id))
+    faculty = faculty_result.scalars().first()
+    mentor_name = faculty.faculty_name if faculty else "Assigned Faculty"
+    
     file_name = f"{internship_id}_certificate.pdf"
     # Use forward slashes explicitly for web URL compatibility
     file_path = f"generated_certificates/{file_name}"
@@ -36,12 +42,24 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
     cert_result = await db.execute(select(Certificate).filter(Certificate.internship_id == internship_id))
     cert = cert_result.scalars().first()
     
+    needs_commit = False
     if not cert:
-        count_result = await db.execute(select(func.count()).select_from(Certificate))
-        cert_count = count_result.scalar() + 1
-        cert_number = f"IMS-{datetime.utcnow().year}-{cert_count:04d}"
+        # Brand new certificate
+        cert_number = f"NITT-{secrets.token_hex(6).upper()}"
         cert = Certificate(internship_id=internship_id, certificate_path=file_path, certificate_number=cert_number)
         db.add(cert)
+        needs_commit = True
+    else:
+        # Upgrade legacy sequential IDs (e.g. IMS-2026-0001) to secure ones
+        if not cert.certificate_number or cert.certificate_number.startswith("IMS-"):
+            cert.certificate_number = f"NITT-{secrets.token_hex(6).upper()}"
+            needs_commit = True
+        # Standardize the file path to generated_certificates/ if it points elsewhere (legacy seed data)
+        if not cert.certificate_path.startswith("generated_certificates/"):
+            cert.certificate_path = file_path
+            needs_commit = True
+
+    if needs_commit:
         await db.commit()
         await db.refresh(cert)
 
@@ -54,7 +72,8 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
         start_date=internship.start_date,
         end_date=internship.end_date,
         output_path=file_path,
-        certificate_number=cert.certificate_number
+        certificate_number=cert.certificate_number,
+        mentor_name=mentor_name
     )
     
     return cert
@@ -109,3 +128,122 @@ async def email_certificate(internship_id: UUID, db: AsyncSession = Depends(get_
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
         
     return {"message": "Email sent successfully"}
+
+from fastapi.responses import FileResponse
+
+@router.get("/verify/{certificate_number}")
+async def verify_certificate(certificate_number: str, db: AsyncSession = Depends(get_db)):
+    # Public endpoint to verify a certificate by its unique ID
+    cert_result = await db.execute(select(Certificate).filter(Certificate.certificate_number == certificate_number))
+    cert = cert_result.scalars().first()
+    
+    if not cert:
+        raise HTTPException(status_code=404, detail="Invalid Verification ID. Certificate not found.")
+        
+    internship_result = await db.execute(select(Internship).filter(Internship.internship_id == cert.internship_id))
+    internship = internship_result.scalars().first()
+    
+    if not internship:
+        raise HTTPException(status_code=404, detail="Internship record corrupted or not found.")
+        
+    intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
+    intern = intern_result.scalars().first()
+    
+    faculty_result = await db.execute(select(Faculty).filter(Faculty.faculty_id == internship.faculty_id))
+    faculty = faculty_result.scalars().first()
+    
+    return {
+        "status": "valid",
+        "certificate_number": cert.certificate_number,
+        "intern_name": intern.intern_name,
+        "college_name": intern.college_name,
+        "project_title": internship.internship_title,
+        "domain": internship.internship_domain,
+        "start_date": internship.start_date.isoformat(),
+        "end_date": internship.end_date.isoformat(),
+        "mentor_name": faculty.faculty_name if faculty else "Assigned Faculty",
+        "generated_at": cert.generated_at.isoformat()
+    }
+
+@router.get("/view/{internship_id}")
+async def view_certificate(internship_id: UUID, db: AsyncSession = Depends(get_db)):
+    # This route doesn't require authentication so it can be viewed easily in a new tab
+    internship_result = await db.execute(select(Internship).filter(Internship.internship_id == internship_id))
+    internship = internship_result.scalars().first()
+    if not internship:
+        raise HTTPException(status_code=404, detail="Internship not found")
+    
+    cert_result = await db.execute(select(Certificate).filter(Certificate.internship_id == internship_id))
+    cert = cert_result.scalars().first()
+    
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate record not found for this internship")
+        
+    if not os.path.exists(cert.certificate_path):
+        # Engine: File is missing from disk (e.g. seeded data). Generate it on the fly!
+        intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
+        intern = intern_result.scalars().first()
+        
+        faculty_result = await db.execute(select(Faculty).filter(Faculty.faculty_id == internship.faculty_id))
+        faculty = faculty_result.scalars().first()
+        mentor_name = faculty.faculty_name if faculty else "Assigned Faculty"
+        
+        await asyncio.to_thread(
+            generate_certificate_pdf,
+            intern_name=intern.intern_name,
+            college_name=intern.college_name,
+            title=internship.internship_title,
+            domain=internship.internship_domain,
+            start_date=internship.start_date,
+            end_date=internship.end_date,
+            output_path=cert.certificate_path,
+            certificate_number=cert.certificate_number,
+            mentor_name=mentor_name
+        )
+        
+    return FileResponse(
+        cert.certificate_path,
+        media_type="application/pdf",
+        filename=cert.certificate_path.split("/")[-1],
+        content_disposition_type="inline" # Inline so it opens in the browser natively
+    )
+
+@router.get("/preview/{internship_id}")
+async def preview_certificate(internship_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+    internship_result = await db.execute(select(Internship).filter(Internship.internship_id == internship_id))
+    internship = internship_result.scalars().first()
+    if not internship:
+        raise HTTPException(status_code=404, detail="Internship not found")
+    
+    intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
+    intern = intern_result.scalars().first()
+    if not intern:
+        raise HTTPException(status_code=404, detail="Intern not found")
+        
+    faculty_result = await db.execute(select(Faculty).filter(Faculty.faculty_id == internship.faculty_id))
+    faculty = faculty_result.scalars().first()
+    mentor_name = faculty.faculty_name if faculty else "Assigned Faculty"
+        
+    temp_dir = "temp_previews"
+    os.makedirs(temp_dir, exist_ok=True)
+    preview_file = f"{temp_dir}/{internship_id}_preview.pdf"
+    
+    await asyncio.to_thread(
+        generate_certificate_pdf,
+        intern_name=intern.intern_name,
+        college_name=intern.college_name,
+        title=internship.internship_title,
+        domain=internship.internship_domain,
+        start_date=internship.start_date,
+        end_date=internship.end_date,
+        output_path=preview_file,
+        certificate_number="NITT-PREVIEW-TEMP",
+        mentor_name=mentor_name
+    )
+    
+    return FileResponse(
+        preview_file, 
+        media_type="application/pdf", 
+        filename=f"Preview_{intern.intern_name.replace(' ', '_')}_Certificate.pdf",
+        content_disposition_type="inline"
+    )
