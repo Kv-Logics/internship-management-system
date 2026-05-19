@@ -142,7 +142,29 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
         joinedload(Internship.intern),
         joinedload(Internship.faculty)
     ).filter(Internship.internship_id == internship_id))
-    return result.scalars().first()
+    updated_internship = result.scalars().first()
+
+    # If a certificate already exists, regenerate it to reflect changes in-place
+    if updated_internship and updated_internship.certificate:
+        from app.services.certificate_service import generate_certificate_pdf
+        import asyncio
+        
+        mentor_name = updated_internship.faculty.faculty_name if updated_internship.faculty else "Assigned Faculty"
+        
+        await asyncio.to_thread(
+            generate_certificate_pdf,
+            intern_name=updated_internship.intern.intern_name,
+            college_name=updated_internship.intern.college_name,
+            title=updated_internship.internship_title,
+            domain=updated_internship.internship_domain,
+            start_date=updated_internship.start_date,
+            end_date=updated_internship.end_date,
+            output_path=updated_internship.certificate.certificate_path,
+            certificate_number=updated_internship.certificate.certificate_number,
+            mentor_name=mentor_name
+        )
+
+    return updated_internship
 
 @router.delete("/{internship_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_internship(internship_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
