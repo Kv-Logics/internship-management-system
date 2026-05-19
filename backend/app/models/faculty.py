@@ -23,5 +23,7 @@ class Faculty(Base):
     )
 
     role = Column(String, nullable=False, default="faculty", server_default="faculty")
+    
+    signature_path = Column(String, nullable=True)
 
     internships = relationship("Internship", back_populates="faculty", cascade="all, delete-orphan")

@@ -83,7 +83,8 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
         end_date=internship.end_date,
         output_path=file_path,
         certificate_number=final_cert_number,
-        mentor_name=mentor_name
+        mentor_name=mentor_name,
+        faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None
     )
     
     # Re-fetch the certificate with all relationships eagerly loaded
@@ -225,7 +226,8 @@ async def view_certificate(internship_id: UUID, db: AsyncSession = Depends(get_d
             end_date=internship.end_date,
             output_path=cert.certificate_path,
             certificate_number=cert.certificate_number,
-            mentor_name=mentor_name
+            mentor_name=mentor_name,
+            faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None
         )
         
     # Fetch the intern to use their name for the downloaded file

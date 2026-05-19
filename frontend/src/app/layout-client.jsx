@@ -3,7 +3,7 @@ import React, { useContext, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { AuthContext } from './providers';
-import { LayoutDashboard, Users, UserPlus, LogOut, Database } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, LogOut, Database, PenTool } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
@@ -100,6 +100,11 @@ export default function ProtectedLayout({ children }) {
           {user?.role === 'admin' && (
             <Link href="/faculties" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/faculties')}`}>
               <Database size={20} /> <span>Faculty Database</span>
+            </Link>
+          )}
+          {user?.role === 'faculty' && (
+            <Link href="/signature" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/signature')}`}>
+              <PenTool size={20} /> <span>Upload E-Sign</span>
             </Link>
           )}
         </nav>

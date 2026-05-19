@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import secrets
@@ -111,6 +111,33 @@ async def delete_faculty(faculty_id: UUID, db: AsyncSession = Depends(get_db), c
     await db.delete(faculty)
     await db.commit()
     return None
+
+import uuid
+
+@router.post("/faculty/signature")
+async def upload_signature(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_faculty)
+):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Must be an image (PNG, JPG, etc.).")
+        
+    ext = (file.filename or "signature.png").split(".")[-1]
+    filename = f"{uuid.uuid4()}.{ext}"
+    os.makedirs("signatures", exist_ok=True)
+    filepath = os.path.join("signatures", filename)
+    
+    contents = await file.read()
+    with open(filepath, "wb") as buffer:
+        buffer.write(contents)
+        
+    # Update the current user's signature_path in the database
+    current_user.signature_path = filepath
+    db.add(current_user)
+    await db.commit()
+    
+    return {"message": "Signature uploaded successfully", "signature_path": filepath}
 
 from sqlalchemy import text
 from typing import Dict, Any

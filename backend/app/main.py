@@ -24,10 +24,15 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_internships_domain ON internships (internship_domain);"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interns_name ON interns (intern_name);"))
+        try:
+            await conn.execute(text("ALTER TABLE faculties ADD COLUMN signature_path VARCHAR;"))
+        except Exception:
+            pass
     yield
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("generated_certificates", exist_ok=True)
+os.makedirs("signatures", exist_ok=True)
 app = FastAPI(title="Internship Management System", lifespan=lifespan)
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -43,6 +48,7 @@ app.add_middleware(
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/generated_certificates", StaticFiles(directory="generated_certificates"), name="generated_certificates")
+app.mount("/signatures", StaticFiles(directory="signatures"), name="signatures")
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(interns.router, prefix="/api/interns", tags=["interns"])

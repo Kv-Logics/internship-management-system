@@ -160,7 +160,8 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
             end_date=updated_internship.end_date,
             output_path=updated_internship.certificate.certificate_path,
             certificate_number=updated_internship.certificate.certificate_number,
-            mentor_name=mentor_name
+            mentor_name=mentor_name,
+            faculty_signature_path=updated_internship.faculty.signature_path if hasattr(updated_internship.faculty, 'signature_path') else None
         )
 
     return updated_internship
