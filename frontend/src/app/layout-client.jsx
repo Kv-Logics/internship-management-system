@@ -40,6 +40,16 @@ export default function ProtectedLayout({ children }) {
     );
   }
 
+  // Public routes that don't need the dashboard sidebar
+  if (pathname === '/verify' || pathname.startsWith('/verify/')) {
+    return (
+      <>
+        {children}
+        <Toaster position="top-right" />
+      </>
+    );
+  }
+
   // If not logged in and on the login page, let them view the login page directly
   if (!user && pathname === '/login') {
     return (

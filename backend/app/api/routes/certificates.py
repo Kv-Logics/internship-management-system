@@ -228,10 +228,15 @@ async def view_certificate(internship_id: UUID, db: AsyncSession = Depends(get_d
             mentor_name=mentor_name
         )
         
+    # Fetch the intern to use their name for the downloaded file
+    intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
+    intern = intern_result.scalars().first()
+    safe_name = intern.intern_name.replace(" ", "_") if intern else "Student"
+    
     return FileResponse(
         cert.certificate_path,
         media_type="application/pdf",
-        filename=cert.certificate_path.split("/")[-1],
+        filename=f"{safe_name}_Certificate.pdf",
         content_disposition_type="inline" # Inline so it opens in the browser natively
     )
 

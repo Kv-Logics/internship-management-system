@@ -143,12 +143,11 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
         joinedload(Internship.faculty)
     ).filter(Internship.internship_id == internship_id))
     updated_internship = result.scalars().first()
-
-    # If a certificate already exists, regenerate it to reflect changes in-place
+    
+    # Automatically regenerate the certificate PDF if it already exists to reflect the edits
     if updated_internship and updated_internship.certificate:
         from app.services.certificate_service import generate_certificate_pdf
         import asyncio
-        
         mentor_name = updated_internship.faculty.faculty_name if updated_internship.faculty else "Assigned Faculty"
         
         await asyncio.to_thread(

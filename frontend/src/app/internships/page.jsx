@@ -166,7 +166,7 @@ export default function InternshipList() {
         toast.success('Certificate generated successfully!', { id: loadId });
         refreshList();
       }
-      const url = `${api.defaults.baseURL}/certificates/view/${item.internship_id}`;
+      const url = `${api.defaults.baseURL}/certificates/view/${item.internship_id}?t=${Date.now()}`;
       window.open(url, '_blank');
     } catch (err) {
       console.error(err);

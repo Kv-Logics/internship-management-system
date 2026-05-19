@@ -41,24 +41,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi.responses import JSONResponse
-import traceback
-
-@app.exception_handler(Exception)
-async def generic_cors_exception_handler(request, exc):
-    print(f"Unhandled Exception on {request.url}: {exc}")
-    traceback.print_exc()
-    return JSONResponse(
-        status_code=500,
-        content={"detail": str(exc), "type": "UnhandledException"},
-        headers={
-            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
-            "Access-Control-Allow-Credentials": "true",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        }
-    )
-
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/generated_certificates", StaticFiles(directory="generated_certificates"), name="generated_certificates")
 
