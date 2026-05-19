@@ -6,9 +6,14 @@ def generate_certificate_pdf(intern_name: str, college_name: str, title: str, do
     # Ensure directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    # Ensure Mentor Name is prefixed with "Dr. " if not already present
-    if not mentor_name.startswith("Dr. ") and not mentor_name.startswith("Prof. "):
-        mentor_name = f"Dr. {mentor_name}"
+    # Clean up any existing prefixes to prevent "Dr. Dr." and ensure exact DB name extraction
+    clean_name = mentor_name.strip()
+    if clean_name.startswith("Dr. "): clean_name = clean_name[4:].strip()
+    elif clean_name.startswith("Dr."): clean_name = clean_name[3:].strip()
+    elif clean_name.startswith("Prof. "): clean_name = clean_name[6:].strip()
+    elif clean_name.startswith("Prof."): clean_name = clean_name[5:].strip()
+    
+    mentor_name_final = f"Dr. {clean_name}"
 
     # Setup Jinja2 environment
     template_dir = os.path.join(os.path.dirname(__file__), '..', 'templates')
@@ -24,7 +29,7 @@ def generate_certificate_pdf(intern_name: str, college_name: str, title: str, do
         start_date=start_date.strftime("%B %d, %Y") if hasattr(start_date, 'strftime') else start_date,
         end_date=end_date.strftime("%B %d, %Y") if hasattr(end_date, 'strftime') else end_date,
         certificate_number=certificate_number,
-        mentor_name=mentor_name
+        mentor_name=mentor_name_final
     )
     
     # Convert HTML to PDF
