@@ -3,7 +3,7 @@ import React, { useContext, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { AuthContext } from './providers';
-import { LayoutDashboard, Users, UserPlus, LogOut, Database, PenTool } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, LogOut, Database, PenTool, Search } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
@@ -89,14 +89,21 @@ export default function ProtectedLayout({ children }) {
           <Link href="/" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/')}`}>
             <LayoutDashboard size={20} /> <span>Dashboard</span>
           </Link>
-          {(count < 5 || user?.role === 'admin') && (
+          {(count < 5 || user?.role === 'admin') && user?.role !== 'dean' && (
             <Link href="/internships/add" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/internships/add')}`}>
               <UserPlus size={20} /> <span>Add Intern</span>
             </Link>
           )}
-          <Link href="/internships" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/internships')}`}>
-            <Users size={20} /> <span>Internships</span>
-          </Link>
+          {user?.role !== 'dean' && (
+            <Link href="/internships" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/internships')}`}>
+              <Users size={20} /> <span>Internships</span>
+            </Link>
+          )}
+          {user?.role === 'dean' && (
+            <Link href="/dean/faculties" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/dean/faculties')}`}>
+              <Search size={20} /> <span>Faculty Overview</span>
+            </Link>
+          )}
           {user?.role === 'admin' && (
             <Link href="/faculties" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/faculties')}`}>
               <Database size={20} /> <span>Faculty Database</span>
@@ -123,11 +130,13 @@ export default function ProtectedLayout({ children }) {
         <header className="bg-white shadow p-4 px-6 flex justify-between items-center border-b border-gray-200">
           <h1 className="text-xl font-bold text-gray-800">Welcome, {user?.faculty_name}</h1>
           <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-            user?.role === 'admin' 
-              ? 'bg-rose-100 text-rose-800' 
+            user?.role === 'admin'
+              ? 'bg-rose-100 text-rose-800'
+              : user?.role === 'dean'
+              ? 'bg-amber-100 text-amber-800'
               : 'bg-indigo-100 text-indigo-800'
           }`}>
-            {user?.role === 'admin' ? 'System Admin' : 'Faculty Account'}
+            {user?.role === 'admin' ? 'System Admin' : user?.role === 'dean' ? 'Dean (R&C)' : 'Faculty Account'}
           </span>
         </header>
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">

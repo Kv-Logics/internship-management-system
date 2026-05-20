@@ -76,7 +76,7 @@ export default function SqlTerminal({ sqlQuery, setSqlQuery, handleExecuteQuery,
         <div className="flex items-center space-x-2 pb-3 border-b border-gray-100">
           <Database className="text-indigo-600" size={18} />
           <div>
-            <h4 className="text-sm font-bold text-gray-800">Schema Schema</h4>
+            <h4 className="text-sm font-bold text-gray-800">Database Schema</h4>
             <p className="text-[10px] text-gray-400 font-medium">Core PostgreSQL Tables</p>
           </div>
         </div>

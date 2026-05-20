@@ -27,10 +27,11 @@ export function Providers({ children }) {
 
   const verifyOtp = async (email, otp) => {
     const response = await api.post('/auth/verify-otp', { email, otp });
+    const role = response.data.role || 'faculty';
     localStorage.setItem('token', response.data.access_token);
     localStorage.setItem('faculty_name', response.data.faculty_name);
-    localStorage.setItem('role', 'faculty');
-    setUser({ faculty_name: response.data.faculty_name, role: 'faculty' });
+    localStorage.setItem('role', role);
+    setUser({ faculty_name: response.data.faculty_name, role });
   };
 
   const adminLogin = async (username, password) => {
@@ -46,6 +47,7 @@ export function Providers({ children }) {
     localStorage.removeItem('faculty_name');
     localStorage.removeItem('role');
     setUser(null);
+    queryClient.clear();
   };
 
   return (

@@ -29,7 +29,6 @@ export default function InternshipFilters({ search, setSearch, activeTab, setAct
           { id: 'all', label: 'All', icon: BookOpen },
           { id: 'not_started', label: 'Not Started', icon: Calendar, color: 'text-slate-600 bg-slate-100 border-slate-200' },
           { id: 'ongoing', label: 'Ongoing', icon: Clock, color: 'text-amber-700 bg-amber-50 border-amber-200' },
-          { id: 'pending', label: 'Pending Signature', icon: ShieldAlert, color: 'text-rose-700 bg-rose-50 border-rose-200' },
           { id: 'complete', label: 'Completed', icon: Award, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
         ].map((tab) => {
           const tabCount = internships.filter(item => tab.id === 'all' ? true : getRecordStatus(item) === tab.id).length;

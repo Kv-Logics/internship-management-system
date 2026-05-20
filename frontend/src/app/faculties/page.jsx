@@ -88,25 +88,6 @@ export default function FacultyDatabase() {
     }
   };
 
-  // Automatically generate certificates for pending internships
-  useEffect(() => {
-    const generatePendingCertificates = async () => {
-      const today = new Date();
-      const pendingInternships = internships.filter(item => new Date(item.end_date) < today && !item.certificate);
-      if (pendingInternships.length > 0) {
-        const token = localStorage.getItem('token');
-        for (const item of pendingInternships) {
-          try {
-            await api.post(`/certificates/generate/${item.internship_id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
-          } catch (err) {
-            console.error('Auto-generation failed', err);
-          }
-        }
-        fetchDatabase();
-      }
-    };
-    generatePendingCertificates();
-  }, [internships]);
 
   const handleDeleteFaculty = async (facultyId, e) => {
     e.stopPropagation(); // Prevent opening detail view when deleting

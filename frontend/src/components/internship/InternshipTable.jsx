@@ -44,8 +44,8 @@ export default function InternshipTable({
                       <div>
                         <div className="text-sm font-bold text-gray-800">{item.intern?.intern_name || 'N/A'}</div>
                         <div className="text-xs text-gray-400 mt-0.5">{item.intern?.college_name || 'N/A'}</div>
-                        <span className={`inline-flex text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider mt-1.5 ${status === 'not_started' ? 'bg-slate-100 text-slate-700' : status === 'ongoing' ? 'bg-amber-100 text-amber-800' : status === 'pending' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                          {status === 'not_started' ? 'Not Started' : status === 'ongoing' ? 'Ongoing' : status === 'pending' ? 'Pending Signature' : 'Completed'}
+                        <span className={`inline-flex text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider mt-1.5 ${status === 'not_started' ? 'bg-slate-100 text-slate-700' : status === 'ongoing' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                          {status === 'not_started' ? 'Not Started' : status === 'ongoing' ? 'Ongoing' : 'Completed'}
                         </span>
                       </div>
                     </div>
@@ -84,9 +84,9 @@ export default function InternshipTable({
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-3">
-                      <button onClick={() => setPreviewItem(item)} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg transition-all" title="Preview Details"><Eye size={15} /></button>
-                      <button onClick={(e) => handleEditClick(item, e)} className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-100 rounded-lg transition-all" title="Edit Entire Record"><Edit2 size={15} /></button>
-                      {(status === 'complete' || status === 'pending' || user?.role === 'admin') && (
+                      <button onClick={() => setPreviewItem(item)} className="p-1.5 text-gray-550 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg transition-all" title="Preview Details"><Eye size={15} /></button>
+                      <button onClick={(e) => handleEditClick(item, e)} className="p-1.5 text-gray-550 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-100 rounded-lg transition-all" title="Edit Entire Record"><Edit2 size={15} /></button>
+                      {(status === 'complete' || user?.role === 'admin') && (
                         <div className="flex space-x-2">
                           <button onClick={(e) => handlePreviewCertificate(item, e)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-100 rounded-lg transition-all" title="Preview Certificate"><Eye size={15} /></button>
                           <button onClick={(e) => handleSendEmail(item, e)} className="p-1.5 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-lg transition-all" title="Email Cert to Student"><Mail size={15} /></button>

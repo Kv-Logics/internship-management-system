@@ -72,7 +72,7 @@ async def verify_otp(request: OTPVerifyRequest, db: AsyncSession = Depends(get_d
     del OTP_STORE[request.email]
     
     access_token = create_access_token(data={"sub": faculty.email, "role": faculty.role})
-    return {"access_token": access_token, "token_type": "bearer", "faculty_name": faculty.faculty_name}
+    return {"access_token": access_token, "token_type": "bearer", "faculty_name": faculty.faculty_name, "role": faculty.role}
 
 @router.post("/admin/login")
 async def admin_login(request: AdminLoginRequest):
@@ -99,6 +99,16 @@ async def list_faculties(db: AsyncSession = Depends(get_db), current_user = Depe
         raise HTTPException(status_code=403, detail="Not authorized to view faculties")
     result = await db.execute(select(Faculty))
     return result.scalars().all()
+
+@router.get("/me")
+async def get_me(current_user = Depends(get_current_faculty)):
+    return {
+        "faculty_id": str(current_user.faculty_id),
+        "faculty_name": current_user.faculty_name,
+        "email": current_user.email,
+        "role": current_user.role,
+        "signature_path": current_user.signature_path,
+    }
 
 @router.delete("/faculties/{faculty_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_faculty(faculty_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):

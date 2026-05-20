@@ -98,8 +98,9 @@ documents         → document_id (UUID PK), internship_id (FK), file_path
 | POST | `/verify-otp` | Public | Verify OTP → JWT |
 | POST | `/admin/login` | Public | Admin username/password login |
 | GET | `/faculties` | Admin/Dean | List all faculties |
+| GET | `/me` | Auth | Returns current faculty profile incl. `signature_path` |
 | DELETE | `/faculties/{id}` | Admin | Delete faculty |
-| POST | `/faculty/signature` | Auth | Upload e-signature image |
+| POST | `/faculty/signature` | Auth | Upload/replace e-signature image |
 | POST | `/admin/query` | Admin | Run raw SQL query |
 
 ### Internships (`/api/internships`)
@@ -134,6 +135,8 @@ documents         → document_id (UUID PK), internship_id (FK), file_path
 | `/faculties` | Admin only | Faculty management |
 | `/signature` | **Faculty only** | Upload E-Sign with crop tool |
 | `/verify` | **Public** | Certificate verification portal |
+| `/dean/faculties` | **Dean only** | Search + list all faculty mentors |
+| `/dean/faculties/[id]` | **Dean only** | Faculty profile — all interns & projects under that mentor |
 
 ---
 
@@ -229,3 +232,4 @@ npm run dev        # runs on http://localhost:3000
 
 ## 🔄 Last Updated
 > 2026-05-19 — Added Faculty E-Signature feature (upload, crop, PDF overlay, faculty-only sidebar link)
+> 2026-05-20 — Added Dean role pages. Fixed `providers.jsx` to read role from JWT response (not hardcode 'faculty'). Fixed `token.py` schema to include role. Added `GET /api/auth/me` endpoint. Rewrote `certificate_service.py` canonical version with `faculty_signature_path`, correct date format, bottom-left signature, bottom-right issue date. Rewrote `signature/page.jsx` to show existing sig preview + Replace button using `/me` + React Query invalidation. Converted Faculty directory to a line-by-line lightweight table view. Removed "Pending Signature" tab and status from all logins. Removed the recursive auto-generate certificate loop from faculties and internships pages, completely resolving performance issues and lagging. Added report/proof document viewing to the Dean's Faculty profile page. Changed default administrator password to `adminadmin`. Added query cache clearing on logout.

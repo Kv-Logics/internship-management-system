@@ -210,24 +210,6 @@ export default function InternshipList() {
     return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
   };
 
-  // Automatically generate certificates for pending internships
-  useEffect(() => {
-    const generatePendingCertificates = async () => {
-      const pendingInternships = internships.filter(item => getRecordStatus(item) === 'pending');
-      if (pendingInternships.length > 0) {
-        for (const item of pendingInternships) {
-          try {
-            await api.post(`/certificates/generate/${item.internship_id}`);
-          } catch (err) {
-            console.error('Auto-generation failed', err);
-          }
-        }
-        refreshList();
-      }
-    };
-    generatePendingCertificates();
-  }, [internships]);
-
   // Helper: Classify record into a status category
   const getRecordStatus = (item) => {
     const today = new Date();
@@ -238,8 +220,6 @@ export default function InternshipList() {
       return 'not_started';
     } else if (start <= today && today <= end) {
       return 'ongoing';
-    } else if (end < today && !item.certificate) {
-      return 'pending';
     } else {
       return 'complete';
     }
