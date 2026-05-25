@@ -8,16 +8,11 @@ if (!baseURL) {
 
 const api = axios.create({
   baseURL: baseURL || 'http://localhost:8000/api',
+  withCredentials: true,
 });
 
 api.interceptors.request.use(
   (config) => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -28,9 +23,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('faculty_name');
-        localStorage.removeItem('role');
+        localStorage.removeItem('ims_user');
         window.location.href = '/login';
       }
     }
