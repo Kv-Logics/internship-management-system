@@ -12,17 +12,6 @@ export function Providers({ children }) {
 
   useEffect(() => {
     const restoreSession = async () => {
-      const storedUser = localStorage.getItem('ims_user');
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-          setLoading(false);
-          return;
-        } catch {
-          localStorage.removeItem('ims_user');
-        }
-      }
-
       try {
         const response = await api.get('/auth/me');
         const sessionUser = {
@@ -34,6 +23,7 @@ export function Providers({ children }) {
         localStorage.setItem('ims_user', JSON.stringify(sessionUser));
         setUser(sessionUser);
       } catch {
+        localStorage.removeItem('ims_user');
         setUser(null);
       } finally {
         setLoading(false);
@@ -51,7 +41,7 @@ export function Providers({ children }) {
 
   const completeNittAuth = useCallback((profile) => {
     const sessionUser = {
-      faculty_name: profile.name || profile.email,
+      faculty_name: profile.faculty_name || profile.name || profile.email,
       email: profile.email,
       role: (profile.role || 'faculty').toLowerCase(),
       dept: profile.dept || '',

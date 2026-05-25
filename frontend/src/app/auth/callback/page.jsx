@@ -4,8 +4,6 @@ import { useRouter } from 'next/navigation';
 import { AuthContext } from '../../providers';
 import api from '../../../services/api';
 
-const normalizeRole = (role) => (role || 'faculty').toLowerCase();
-
 export default function AuthCallback() {
   const { completeNittAuth } = useContext(AuthContext);
   const router = useRouter();
@@ -16,7 +14,7 @@ export default function AuthCallback() {
       const profile = {
         email: searchParams.get('email') || '',
         name: searchParams.get('name') || '',
-        role: normalizeRole(searchParams.get('role')),
+        role: searchParams.get('role') || '',
         dept: searchParams.get('dept') || '',
       };
 
@@ -25,11 +23,11 @@ export default function AuthCallback() {
         return;
       }
 
-      completeNittAuth(profile);
-
       try {
-        await api.get('/auth/me');
+        const response = await api.get('/auth/me');
+        completeNittAuth(response.data);
       } catch {
+        localStorage.removeItem('ims_user');
         router.replace('/login');
         return;
       }

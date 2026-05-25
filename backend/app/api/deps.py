@@ -15,12 +15,10 @@ ROLE_MAP = {
     "DIRECTOR": "dean",
     "FACULTY": "faculty",
     "HOD": "faculty",
-    "SECURITY": "faculty",
-    "STUDENT": "faculty",
 }
 
 def normalize_role(role: str | None) -> str:
-    return ROLE_MAP.get((role or "FACULTY").upper(), "faculty")
+    return ROLE_MAP.get((role or "").upper(), "unauthorized")
 
 def display_name_from_email(email: str) -> str:
     return email.split("@")[0].replace(".", " ").replace("_", " ").title()
@@ -50,6 +48,12 @@ async def get_current_faculty(request: Request, db: AsyncSession = Depends(get_d
         raise credentials_exception
 
     role = normalize_role(payload.get("role"))
+    if role == "unauthorized":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This NITT Auth role is not authorized to access the Internship Management faculty portal.",
+        )
+
     if role == "admin" or email == "admin@nitt.edu":
         return Faculty(
             faculty_id="00000000-0000-0000-0000-000000000000",

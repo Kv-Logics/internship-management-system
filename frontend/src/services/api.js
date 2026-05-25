@@ -24,7 +24,11 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('ims_user');
-        window.location.href = '/login';
+        const publicPaths = ['/login', '/auth/callback'];
+        const isPublicPath = publicPaths.some((path) => window.location.pathname.startsWith(path));
+        if (!isPublicPath) {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);
