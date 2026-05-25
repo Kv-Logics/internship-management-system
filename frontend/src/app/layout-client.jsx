@@ -13,22 +13,24 @@ export default function ProtectedLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const isPublicRoute = pathname === '/login' || pathname === '/auth/callback' || pathname === '/verify' || pathname.startsWith('/verify/');
+
   const { data: internships } = useQuery({
     queryKey: ['layoutInternships', user?.faculty_name],
     queryFn: async () => {
       const res = await api.get('/internships/');
       return res.data;
     },
-    enabled: !!user && pathname !== '/login'
+    enabled: !!user && !isPublicRoute
   });
   
   const count = internships?.length || 0;
 
   useEffect(() => {
-    if (!loading && !user && pathname !== '/login') {
+    if (!loading && !user && !isPublicRoute) {
       router.push('/login');
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router, isPublicRoute]);
 
   // If loading session, show a spinner
   if (loading) {
@@ -41,7 +43,7 @@ export default function ProtectedLayout({ children }) {
   }
 
   // Public routes that don't need the dashboard sidebar
-  if (pathname === '/verify' || pathname.startsWith('/verify/')) {
+  if (pathname === '/verify' || pathname.startsWith('/verify/') || pathname === '/auth/callback') {
     return (
       <>
         {children}
@@ -69,8 +71,8 @@ export default function ProtectedLayout({ children }) {
     );
   }
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
   };
 

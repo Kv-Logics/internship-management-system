@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import api from '../services/api';
 
@@ -11,47 +11,61 @@ export function Providers({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const facultyName = localStorage.getItem('faculty_name');
-    const role = localStorage.getItem('role');
-    if (token && facultyName) {
-      setUser({ faculty_name: facultyName, role: role || 'faculty' });
-    }
-    setLoading(false);
+    const restoreSession = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        const sessionUser = {
+          faculty_name: response.data.faculty_name,
+          email: response.data.email,
+          role: response.data.role || 'faculty',
+          dept: response.data.dept || '',
+        };
+        localStorage.setItem('ims_user', JSON.stringify(sessionUser));
+        setUser(sessionUser);
+      } catch {
+        localStorage.removeItem('ims_user');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
   }, []);
 
-  const sendOtp = async (email) => {
-    const response = await api.post('/auth/send-otp', { email });
-    return response.data;
-  };
+  const loginWithNittAuth = useCallback(() => {
+    const authBaseUrl = process.env.NEXT_PUBLIC_NITT_AUTH_URL || 'http://localhost:5001';
+    const callbackUrl = `${window.location.origin}/auth/callback`;
+    window.location.href = `${authBaseUrl}/login?redirectTo=${encodeURIComponent(callbackUrl)}`;
+  }, []);
 
-  const verifyOtp = async (email, otp) => {
-    const response = await api.post('/auth/verify-otp', { email, otp });
-    const role = response.data.role || 'faculty';
-    localStorage.setItem('token', response.data.access_token);
-    localStorage.setItem('faculty_name', response.data.faculty_name);
-    localStorage.setItem('role', role);
-    setUser({ faculty_name: response.data.faculty_name, role });
-  };
+  const completeNittAuth = useCallback((profile) => {
+    const sessionUser = {
+      faculty_name: profile.faculty_name || profile.name || profile.email,
+      email: profile.email,
+      role: (profile.role || 'faculty').toLowerCase(),
+      dept: profile.dept || '',
+    };
+    localStorage.setItem('ims_user', JSON.stringify(sessionUser));
+    setUser(sessionUser);
+  }, []);
 
-  const adminLogin = async (username, password) => {
-    const response = await api.post('/auth/admin/login', { username, password });
-    localStorage.setItem('token', response.data.access_token);
-    localStorage.setItem('faculty_name', response.data.faculty_name);
-    localStorage.setItem('role', 'admin');
-    setUser({ faculty_name: response.data.faculty_name, role: 'admin' });
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('faculty_name');
-    localStorage.removeItem('role');
+  const logout = async () => {
+    try {
+      const authApiUrl = process.env.NEXT_PUBLIC_NITT_AUTH_API_URL;
+      if (authApiUrl) {
+        await api.post(`${authApiUrl}/auth/logout`);
+      }
+    } catch {
+      // Local logout should still complete if central logout is unavailable.
+    }
+    localStorage.removeItem('ims_user');
     setUser(null);
     queryClient.clear();
   };
 
   return (
-    <AuthContext.Provider value={{ user, sendOtp, verifyOtp, adminLogin, logout, loading }}>
+    <AuthContext.Provider value={{ user, loginWithNittAuth, completeNittAuth, logout, loading }}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

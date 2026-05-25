@@ -107,6 +107,7 @@ async def get_me(current_user = Depends(get_current_faculty)):
         "faculty_name": current_user.faculty_name,
         "email": current_user.email,
         "role": current_user.role,
+        "dept": getattr(current_user, "dept", ""),
         "signature_path": current_user.signature_path,
     }
 
