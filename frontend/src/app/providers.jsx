@@ -34,7 +34,7 @@ export function Providers({ children }) {
   }, []);
 
   const login = () => {
-    const ssoUrl = process.env.NEXT_PUBLIC_SSO_URL || 'http://localhost:4000/auth/login';
+    const ssoUrl = process.env.NEXT_PUBLIC_SSO_URL || 'https://cdi.nitt.edu/login';
     const redirectUrl = encodeURIComponent(window.location.origin + '/auth/callback');
     window.location.href = `${ssoUrl}?redirect=${redirectUrl}`;
   };
@@ -42,7 +42,7 @@ export function Providers({ children }) {
   const logout = async () => {
     setUser(null);
     queryClient.clear();
-    const ssoLogoutUrl = process.env.NEXT_PUBLIC_SSO_LOGOUT_URL || 'http://localhost:4000/auth/logout';
+    const ssoLogoutUrl = process.env.NEXT_PUBLIC_SSO_LOGOUT_URL || 'https://cdi.nitt.edu/logout';
     window.location.href = `${ssoLogoutUrl}?redirect=${encodeURIComponent(window.location.origin)}`;
   };
 
