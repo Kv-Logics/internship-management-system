@@ -37,11 +37,11 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     except JWTError:
         raise credentials_exception
 
-    if email == "admin@nitt.edu":
+    if email == "114123003@nitt.edu":
         return Faculty(
             faculty_id="00000000-0000-0000-0000-000000000000",
             faculty_name="Administrator",
-            email="admin@nitt.edu",
+            email="114123003@nitt.edu",
             role="admin"
         )
 
