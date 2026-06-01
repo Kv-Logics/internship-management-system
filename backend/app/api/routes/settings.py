@@ -167,3 +167,22 @@ async def test_smtp_settings(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to send email: {str(e)}")
 
+@router.delete("/smtp")
+async def reset_smtp_settings(
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_faculty)
+):
+    if getattr(current_user, "role", "faculty") != "admin":
+        raise HTTPException(status_code=403, detail="Only administrators can reset SMTP settings.")
+        
+    keys = ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_secure"]
+    for key in keys:
+        result = await db.execute(select(SystemSetting).filter(SystemSetting.key == key))
+        setting = result.scalars().first()
+        if setting:
+            await db.delete(setting)
+            
+    await db.commit()
+    return {"message": "SMTP settings reset successfully"}
+
+

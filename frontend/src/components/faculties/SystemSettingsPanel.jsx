@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, Save, RefreshCw, AlertCircle, Mail, ShieldCheck } from 'lucide-react';
+import { Calendar, Users, Clock, Save, RefreshCw, AlertCircle, Mail, ShieldCheck, RotateCcw } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -112,6 +112,32 @@ export default function SystemSettingsPanel() {
       toast.error(err.response?.data?.detail || 'Failed to send test email. Double check credentials.', { id: loadId });
     } finally {
       setTestingSmtp(false);
+    }
+  };
+
+  const handleResetSmtp = async () => {
+    if (!window.confirm('Are you sure you want to completely clear and reset the SMTP configurations?')) {
+      return;
+    }
+    setSavingSmtp(true);
+    const loadId = toast.loading('Resetting SMTP configurations...');
+    try {
+      await api.delete('/settings/smtp');
+      toast.success('SMTP settings reset successfully!', { id: loadId });
+      setSmtpSettings({
+        smtp_host: '',
+        smtp_port: '',
+        smtp_username: '',
+        smtp_password: '',
+        smtp_secure: 'ssl',
+        has_password: false,
+      });
+      setTestEmail('');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to reset SMTP settings.', { id: loadId });
+    } finally {
+      setSavingSmtp(false);
     }
   };
 
@@ -360,7 +386,16 @@ export default function SystemSettingsPanel() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleResetSmtp}
+                disabled={savingSmtp || (!smtpSettings.smtp_host && !smtpSettings.smtp_username && !smtpSettings.has_password)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-750 text-xs font-bold rounded-xl shadow-sm border border-gray-250 transition-all disabled:opacity-40 cursor-pointer"
+              >
+                <RotateCcw size={12} />
+                <span>Reset Settings</span>
+              </button>
               <button
                 type="submit"
                 disabled={savingSmtp}
