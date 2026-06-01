@@ -27,8 +27,24 @@ async def get_me(current_user = Depends(get_current_faculty)):
         "faculty_name": current_user.faculty_name,
         "email": current_user.email,
         "role": current_user.role,
+        "department": current_user.department,
         "signature_path": current_user.signature_path,
     }
+
+from pydantic import BaseModel
+class DepartmentUpdate(BaseModel):
+    department: str
+
+@router.put("/me/department")
+async def update_department(
+    data: DepartmentUpdate, 
+    db: AsyncSession = Depends(get_db), 
+    current_user = Depends(get_current_faculty)
+):
+    current_user.department = data.department
+    db.add(current_user)
+    await db.commit()
+    return {"message": "Department updated successfully", "department": current_user.department}
 
 @router.delete("/faculties/{faculty_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_faculty(faculty_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
@@ -41,6 +57,37 @@ async def delete_faculty(faculty_id: UUID, db: AsyncSession = Depends(get_db), c
     await db.delete(faculty)
     await db.commit()
     return None
+
+class NewUserCreate(BaseModel):
+    email: str
+    faculty_name: str
+    role: str
+    department: str = None
+
+@router.post("/admin/users", response_model=FacultyResponse)
+async def create_user(
+    data: NewUserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_faculty)
+):
+    if getattr(current_user, "role", "faculty") != "admin":
+        raise HTTPException(status_code=403, detail="Only system administrators can create new users")
+        
+    result = await db.execute(select(Faculty).filter(Faculty.email == data.email))
+    if result.scalars().first():
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+        
+    new_faculty = Faculty(
+        email=data.email,
+        faculty_name=data.faculty_name,
+        role=data.role,
+        department=data.department
+    )
+    db.add(new_faculty)
+    await db.commit()
+    await db.refresh(new_faculty)
+    
+    return new_faculty
 
 import uuid
 

@@ -91,6 +91,7 @@ async def _core_generate_certificate(internship_id: UUID, db: AsyncSession):
         output_path=file_path,
         certificate_number=final_cert_number,
         mentor_name=mentor_name,
+        faculty_department=faculty.department if hasattr(faculty, 'department') else None,
         faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None,
         dean_signature_path=dean_signature_path
     )
@@ -295,6 +296,7 @@ async def view_certificate(internship_id: UUID, db: AsyncSession = Depends(get_d
             output_path=cert.certificate_path,
             certificate_number=cert.certificate_number,
             mentor_name=mentor_name,
+            faculty_department=faculty.department if hasattr(faculty, 'department') else None,
             faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None,
             dean_signature_path=dean_signature_path
         )
@@ -347,6 +349,7 @@ async def preview_certificate(internship_id: UUID, db: AsyncSession = Depends(ge
         output_path=preview_file,
         certificate_number="NITT-PREVIEW-TEMP",
         mentor_name=mentor_name,
+        faculty_department=faculty.department if hasattr(faculty, 'department') else None,
         faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None,
         dean_signature_path=dean_signature_path
     )

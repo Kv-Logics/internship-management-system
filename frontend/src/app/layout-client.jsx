@@ -8,6 +8,7 @@ import { LayoutDashboard, Users, UserPlus, LogOut, Database, PenTool, Search, Cr
 import { Toaster, toast } from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
+import DepartmentSelectionModal from '../components/faculties/DepartmentSelectionModal';
 
 export default function ProtectedLayout({ children }) {
   const { user, logout, loading } = useContext(AuthContext);
@@ -82,6 +83,7 @@ export default function ProtectedLayout({ children }) {
   return (
     <div className="flex h-screen bg-gray-100">
       <Toaster position="top-right" />
+      <DepartmentSelectionModal />
       
       {/* Sidebar */}
       <div className="w-64 bg-indigo-800 text-white flex flex-col shadow-lg">
@@ -131,6 +133,9 @@ export default function ProtectedLayout({ children }) {
             <>
               <Link href="/admin/settings" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/admin/settings')}`}>
                 <Settings size={20} /> <span>System Settings</span>
+              </Link>
+              <Link href="/admin/users" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/admin/users')}`}>
+                <Users size={20} /> <span>User Management</span>
               </Link>
               <Link href="/admin/verify" className={`flex items-center space-x-3 p-3 rounded-lg transition-all ${isActive('/admin/verify')}`}>
                 <ShieldCheck size={20} /> <span>Verify Certificate</span>

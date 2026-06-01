@@ -49,12 +49,19 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     result = await db.execute(select(Faculty).filter(Faculty.email == email))
     faculty = result.scalars().first()
     
+    is_primary_admin = (email == "114123003@nitt.edu")
+    
     if not faculty:
         faculty = Faculty(
             email=email,
             faculty_name=payload.get("name") or payload.get("faculty_name") or email.split('@')[0],
-            role=payload.get("role") or "faculty"
+            role="admin" if is_primary_admin else (payload.get("role") or "faculty")
         )
+        db.add(faculty)
+        await db.commit()
+        await db.refresh(faculty)
+    elif is_primary_admin and faculty.role != "admin":
+        faculty.role = "admin"
         db.add(faculty)
         await db.commit()
         await db.refresh(faculty)

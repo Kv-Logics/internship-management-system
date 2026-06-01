@@ -14,6 +14,23 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
     settings_list = result.scalars().all()
     return {setting.key: setting.value for setting in settings_list}
 
+import os
+@router.get("/departments")
+async def get_departments():
+    # Path to CSV in root folder
+    csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "departments_list.csv"))
+    if not os.path.exists(csv_path):
+        return []
+    
+    depts = []
+    with open(csv_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        for line in lines[1:]: # Skip header
+            clean = line.strip().replace('"', '')
+            if clean:
+                depts.append(clean)
+    return depts
+
 @router.put("/")
 async def update_settings(
     settings_data: Dict[str, str],

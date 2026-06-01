@@ -23,6 +23,7 @@ def generate_certificate_pdf(
     output_path: str,
     certificate_number: str,
     mentor_name: str = "Assigned Faculty",
+    faculty_department: str = None,
     faculty_signature_path: str = None,
     dean_signature_path: str = None
 ):
@@ -110,6 +111,10 @@ def generate_certificate_pdf(
 
     # 3. College / institute name
     draw_on_field(college_name.title(), 287, 943, 428, font_bold)
+
+    # 3b. Department name — field: x=287 to 870, underline y=513
+    if faculty_department:
+        draw_on_field(faculty_department.title(), 287, 870, 513, font_bold)
 
     # 4. Dates ─────────────────────────────────────────────────────────────────
     try:

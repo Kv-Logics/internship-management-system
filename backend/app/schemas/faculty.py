@@ -6,6 +6,7 @@ class FacultyBase(BaseModel):
     faculty_name: str
     email: EmailStr
     role: Optional[str] = "faculty"
+    department: Optional[str] = None
 
 class FacultyCreate(FacultyBase):
     pass

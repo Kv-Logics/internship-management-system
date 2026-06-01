@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
         
     for query in [
         "ALTER TABLE faculties ADD COLUMN signature_path VARCHAR;",
+        "ALTER TABLE faculties ADD COLUMN department VARCHAR;",
         "ALTER TABLE internships ADD COLUMN transaction_number VARCHAR;",
         "ALTER TABLE internships ADD COLUMN is_paid BOOLEAN DEFAULT FALSE;",
         "ALTER TABLE internships ADD COLUMN is_emailed BOOLEAN DEFAULT FALSE;"
