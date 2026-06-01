@@ -80,18 +80,24 @@ async def _core_generate_certificate(internship_id: UUID, db: AsyncSession):
     dean = dean_result.scalars().first()
     dean_signature_path = dean.signature_path if dean else None
 
+    dept = faculty.department if (faculty and hasattr(faculty, 'department')) else ""
+    dept_clean = dept.strip() if dept else ""
+    if dept_clean.lower().startswith("department of "):
+        dept_clean = dept_clean[len("department of "):].strip()
+    elif dept_clean.lower().startswith("department of"):
+        dept_clean = dept_clean[len("department of"):].strip()
+
     await asyncio.to_thread(
         generate_certificate_pdf,
         intern_name=intern.intern_name,
         college_name=intern.college_name,
         title=internship.internship_title,
-        domain=internship.internship_domain,
+        domain=dept_clean.title() if dept_clean else "Faculty",
         start_date=internship.start_date,
         end_date=internship.end_date,
         output_path=file_path,
         certificate_number=final_cert_number,
         mentor_name=mentor_name,
-        faculty_department=faculty.department if hasattr(faculty, 'department') else None,
         faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None,
         dean_signature_path=dean_signature_path
     )
@@ -237,7 +243,12 @@ async def view_certificate(internship_id: UUID, db: AsyncSession = Depends(get_d
     cert = cert_result.scalars().first()
     
     if not cert:
-        raise HTTPException(status_code=404, detail="Certificate record not found for this internship")
+        if not getattr(internship, "is_paid", False):
+            raise HTTPException(status_code=400, detail="Cannot generate certificate: Payment is not verified.")
+        try:
+            cert = await _core_generate_certificate(internship_id, db)
+        except ValueError as e:
+            raise HTTPException(status_code=500, detail=str(e))
         
     faculty_result = await db.execute(select(Faculty).filter(Faculty.faculty_id == internship.faculty_id))
     faculty = faculty_result.scalars().first()
@@ -278,18 +289,24 @@ async def view_certificate(internship_id: UUID, db: AsyncSession = Depends(get_d
         dean = dean_res.scalars().first()
         dean_signature_path = dean.signature_path if dean else None
         
+        dept = faculty.department if (faculty and hasattr(faculty, 'department')) else ""
+        dept_clean = dept.strip() if dept else ""
+        if dept_clean.lower().startswith("department of "):
+            dept_clean = dept_clean[len("department of "):].strip()
+        elif dept_clean.lower().startswith("department of"):
+            dept_clean = dept_clean[len("department of"):].strip()
+
         await asyncio.to_thread(
             generate_certificate_pdf,
             intern_name=intern.intern_name,
             college_name=intern.college_name,
             title=internship.internship_title,
-            domain=internship.internship_domain,
+            domain=dept_clean.title() if dept_clean else "Faculty",
             start_date=internship.start_date,
             end_date=internship.end_date,
             output_path=cert.certificate_path,
             certificate_number=cert.certificate_number,
             mentor_name=mentor_name,
-            faculty_department=faculty.department if hasattr(faculty, 'department') else None,
             faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None,
             dean_signature_path=dean_signature_path
         )
@@ -308,51 +325,16 @@ async def view_certificate(internship_id: UUID, db: AsyncSession = Depends(get_d
 
 @router.get("/preview/{internship_id}")
 async def preview_certificate(internship_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
-    internship_result = await db.execute(select(Internship).filter(Internship.internship_id == internship_id))
-    internship = internship_result.scalars().first()
-    if not internship:
-        raise HTTPException(status_code=404, detail="Internship not found")
-    
-    intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
-    intern = intern_result.scalars().first()
-    if not intern:
-        raise HTTPException(status_code=404, detail="Intern not found")
-        
-    faculty_result = await db.execute(select(Faculty).filter(Faculty.faculty_id == internship.faculty_id))
-    faculty = faculty_result.scalars().first()
-    mentor_name = faculty.faculty_name if faculty else "Assigned Faculty"
-        
-    temp_dir = "temp_previews"
-    os.makedirs(temp_dir, exist_ok=True)
-    preview_file = f"{temp_dir}/{internship_id}_preview.pdf"
-    
-    # Query Dean signature
-    dean_res = await db.execute(select(Faculty).filter(Faculty.role == "dean"))
-    dean = dean_res.scalars().first()
-    dean_signature_path = dean.signature_path if dean else None
-
-    await asyncio.to_thread(
-        generate_certificate_pdf,
-        intern_name=intern.intern_name,
-        college_name=intern.college_name,
-        title=internship.internship_title,
-        domain=internship.internship_domain,
-        start_date=internship.start_date,
-        end_date=internship.end_date,
-        output_path=preview_file,
-        certificate_number="NITT-PREVIEW-TEMP",
-        mentor_name=mentor_name,
-        faculty_department=faculty.department if hasattr(faculty, 'department') else None,
-        faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None,
-        dean_signature_path=dean_signature_path
-    )
-    
-    return FileResponse(
-        preview_file, 
-        media_type="application/pdf", 
-        filename=f"Preview_{intern.intern_name.replace(' ', '_')}_Certificate.pdf",
-        content_disposition_type="inline"
-    )
+    try:
+        final_cert = await _core_generate_certificate(internship_id, db)
+        return FileResponse(
+            final_cert.certificate_path, 
+            media_type="application/pdf", 
+            filename=os.path.basename(final_cert.certificate_path),
+            content_disposition_type="inline"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 import io
 import zipfile
 from fastapi.responses import StreamingResponse

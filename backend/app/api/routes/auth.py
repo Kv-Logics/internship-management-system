@@ -34,17 +34,17 @@ async def get_me(current_user = Depends(get_current_faculty)):
 from pydantic import BaseModel
 class DepartmentUpdate(BaseModel):
     department: str
-
 @router.put("/me/department")
 async def update_department(
     data: DepartmentUpdate, 
     db: AsyncSession = Depends(get_db), 
     current_user = Depends(get_current_faculty)
 ):
-    current_user.department = data.department
+    dept_name = data.department
+    current_user.department = dept_name
     db.add(current_user)
     await db.commit()
-    return {"message": "Department updated successfully", "department": current_user.department}
+    return {"message": "Department updated successfully", "department": dept_name}
 
 @router.delete("/faculties/{faculty_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_faculty(faculty_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):

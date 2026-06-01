@@ -16,16 +16,18 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     )
     
     token = request.cookies.get("accessToken")
+    auth_header = request.headers.get("Authorization")
+    print(f"DEBUG: Cookie token: {token}, Auth Header: {auth_header}")
     if not token:
-        # Fallback to Authorization header if provided
-        auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ")[1]
         else:
+            print("DEBUG: No token found in cookies or auth header")
             raise credentials_exception
 
     try:
         secret = os.getenv("JWT_ACCESS_SECRET")
+        print(f"DEBUG: Using secret: {secret}")
         if not secret:
             logger.error("JWT_ACCESS_SECRET not configured")
             raise HTTPException(status_code=500, detail="Internal server error: Missing JWT secret configuration")
@@ -34,7 +36,9 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         email: str = payload.get("email") or payload.get("sub")
         if email is None:
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"JWT verification failed: {e}")
+        print(f"JWT verification failed: {e}")
         raise credentials_exception
 
     if email == "114123003@nitt.edu":

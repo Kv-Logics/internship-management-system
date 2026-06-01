@@ -23,7 +23,6 @@ def generate_certificate_pdf(
     output_path: str,
     certificate_number: str,
     mentor_name: str = "Assigned Faculty",
-    faculty_department: str = None,
     faculty_signature_path: str = None,
     dean_signature_path: str = None
 ):
@@ -42,14 +41,17 @@ def generate_certificate_pdf(
     font_dir = r"C:\Windows\Fonts"
     try:
         font_bold  = ImageFont.truetype(os.path.join(font_dir, "timesbd.ttf"), 28)
+        font_regular = ImageFont.truetype(os.path.join(font_dir, "times.ttf"), 28)
         font_verif = ImageFont.truetype(os.path.join(font_dir, "timesbd.ttf"), 15)
     except IOError:
         # Linux / CI fallback
         try:
             font_bold  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", 28)
+            font_regular = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 28)
             font_verif = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", 16)
         except IOError:
             font_bold  = ImageFont.load_default()
+            font_regular = ImageFont.load_default()
             font_verif = ImageFont.load_default()
 
     DARK = (30, 41, 59, 255)
@@ -112,9 +114,16 @@ def generate_certificate_pdf(
     # 3. College / institute name
     draw_on_field(college_name.title(), 287, 943, 428, font_bold)
 
-    # 3b. Department name — field: x=287 to 870, underline y=513
-    if faculty_department:
-        draw_on_field(faculty_department.title(), 287, 870, 513, font_bold)
+    # 3b. Department name — field: extended to x=378 to 1332, underline y=513
+    # Erase (white-out) the pre-printed "at" word and original line end
+    draw.rectangle([970, 480, 1040, 525], fill=(255, 255, 255, 255))
+    # Extend the underline line from x=970 to x=1332
+    draw.line([(970, 513), (1332, 513)], fill=(30, 41, 59, 255), width=2)
+    # Draw the new "at" word at the end of the extended line
+    tw_at, th_at = _text_size("at", font_regular)
+    draw.text((1345, 513 - th_at - 10), "at", font=font_regular, fill=DARK)
+    # Center the department name on the new wider field
+    draw_on_field(domain, 378, 1332, 513, font_bold)
 
     # 4. Dates ─────────────────────────────────────────────────────────────────
     try:

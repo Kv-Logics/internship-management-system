@@ -19,8 +19,8 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
 import os
 @router.get("/departments")
 async def get_departments():
-    # Path to CSV in root folder
-    csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "departments_list.csv"))
+    # Path to CSV in root folder (4 levels up from backend/app/api/routes/)
+    csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "departments_list.csv"))
     if not os.path.exists(csv_path):
         return []
     

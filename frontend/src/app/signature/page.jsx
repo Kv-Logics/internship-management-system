@@ -157,8 +157,8 @@ export default function SignaturePage() {
       {imageSrc && (
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
           <h3 className="text-base font-bold text-gray-900 mb-2">Crop Your Signature</h3>
-          <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg mb-4">
-            Drag to position, zoom to frame tightly. A clean crop = clean certificate.
+          <p className="text-xs text-indigo-700 bg-indigo-50/50 p-3 rounded-xl mb-4 font-medium">
+            Position and scale your signature within the frame. A precise crop ensures optimal clarity and alignment on generated certificates.
           </p>
           <div className="relative h-80 w-full bg-slate-900 rounded-xl overflow-hidden mb-5">
             <Cropper

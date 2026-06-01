@@ -100,20 +100,26 @@ export default function FacultyDatabase() {
 
   const handlePreviewCertificate = async (item, e) => {
     if (e) e.stopPropagation();
-    try {
-      let certPath = item.certificate?.certificate_path;
-      if (!certPath) {
-        const loadId = toast.loading('Generating certificate...');
-        const res = await api.post(`/certificates/generate/${item.internship_id}`);
-        certPath = res.data.certificate_path;
-        toast.success('Certificate generated successfully!', { id: loadId });
-        fetchDatabase();
-      }
+    
+    if (item.certificate) {
       const url = `${api.defaults.baseURL}/certificates/view/${item.internship_id}`;
       window.open(url, '_blank');
+      return;
+    }
+    
+    const loadId = toast.loading('Loading certificate preview...');
+    try {
+      const res = await api.get(`/certificates/preview/${item.internship_id}`, {
+        responseType: 'blob'
+      });
+      const file = new Blob([res.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL, '_blank');
+      toast.success('Preview loaded successfully!', { id: loadId });
+      fetchDatabase();
     } catch (err) {
       console.error(err);
-      toast.error('Failed to preview certificate.');
+      toast.error('Failed to load certificate preview.', { id: loadId });
     }
   };
 

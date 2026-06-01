@@ -37,7 +37,7 @@ export default function ProtectedLayout({ children }) {
   const count = internships?.length || 0;
 
   useEffect(() => {
-    if (!loading && !user && pathname !== '/login') {
+    if (!loading && !user && pathname !== '/login' && pathname !== '/auth/callback') {
       router.push('/login');
     } else if (user && (pathname === '/payments' || pathname === '/emails') && user.role !== 'admin') {
       router.push('/');
@@ -54,8 +54,8 @@ export default function ProtectedLayout({ children }) {
     );
   }
 
-  // If not logged in and on the login page, let them view the login page directly
-  if (!user && pathname === '/login') {
+  // If not logged in and on the login or callback page, let them view the page directly
+  if (!user && (pathname === '/login' || pathname === '/auth/callback')) {
     return (
       <>
         {children}
@@ -64,7 +64,7 @@ export default function ProtectedLayout({ children }) {
     );
   }
 
-  // If not logged in and not on login page, wait for redirect
+  // If not logged in and not on login or callback page, wait for redirect
   if (!user) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50 text-gray-500">

@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import api from '../services/api';
 
@@ -18,7 +18,7 @@ export function Providers({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const response = await api.get('/auth/me');
       setUser(response.data);
@@ -27,10 +27,15 @@ export function Providers({ children }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchUser();
+    if (typeof window !== 'undefined' && window.location.pathname === '/auth/callback') {
+      // Let the callback page handle its own token extraction and refetchUser
+      setLoading(false);
+    } else {
+      fetchUser();
+    }
   }, []);
 
   const login = () => {
@@ -42,8 +47,9 @@ export function Providers({ children }) {
   const logout = async () => {
     setUser(null);
     queryClient.clear();
-    const ssoLogoutUrl = process.env.NEXT_PUBLIC_SSO_LOGOUT_URL || 'https://cdi.nitt.edu/logout';
-    window.location.href = `${ssoLogoutUrl}?redirect=${encodeURIComponent(window.location.origin)}`;
+    localStorage.removeItem('token');
+    document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax;";
+    window.location.href = '/login';
   };
 
   return (
