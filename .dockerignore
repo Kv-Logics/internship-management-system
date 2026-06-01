@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+npm-debug.log
+venv/
+.venv/
+
+# Version control
+.git/
+.gitignore
+
+# Env files
+.env
+.env.*.local
+.env.local
+
+# Build outputs
+.next/
+build/
+dist/
+
+# Python artifacts
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Local DBs
+*.sqlite3
+*.db
+
+# Dynamic content (Uploads, Certificates, Signatures)
+backend/generated_certificates/
+backend/signatures/
+backend/uploads/
+backend/temp_previews/

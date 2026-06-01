@@ -1,0 +1,45 @@
+# Build stage
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies for compiling Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends gcc build-essential
+
+COPY backend/requirements.txt .
+# Build wheels into a directory to separate build tools from final image
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+# Runtime stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Create a non-root user
+RUN adduser --disabled-password --gecos '' appuser
+
+# Install curl for HEALTHCHECK and runtime dependencies if any
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Copy built wheels from builder and install them
+COPY --from=builder /app/wheels /wheels
+COPY --from=builder /app/requirements.txt .
+RUN pip install --no-cache /wheels/*
+
+# Copy backend application code
+COPY backend/ .
+
+# Ensure appuser owns the directory so it can write to uploads/signatures folders
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+EXPOSE 8000
+
+# Healthcheck to verify the FastAPI server is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/docs || exit 1
+
+# Start the application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
