@@ -28,6 +28,8 @@ services:
       dockerfile: Dockerfile.backend
     restart: unless-stopped
     env_file: .env
+    ports:
+      - "8000:8000"
     volumes:
       - ./backend/signatures:/app/signatures
       - ./backend/generated_certificates:/app/generated_certificates
