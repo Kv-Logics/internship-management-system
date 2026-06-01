@@ -36,7 +36,7 @@ export function Providers({ children }) {
   const login = () => {
     const ssoUrl = process.env.NEXT_PUBLIC_SSO_URL || 'https://cdi.nitt.edu/login';
     const redirectUrl = encodeURIComponent(window.location.origin + '/auth/callback');
-    window.location.href = `${ssoUrl}?redirect=${redirectUrl}`;
+    window.location.href = `${ssoUrl}?redirectTo=${redirectUrl}`;
   };
 
   const logout = async () => {

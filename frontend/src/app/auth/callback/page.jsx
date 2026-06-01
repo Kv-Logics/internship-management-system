@@ -8,6 +8,16 @@ export default function AuthCallback() {
   const { refetchUser } = useContext(AuthContext);
 
   useEffect(() => {
+    // Extract token query parameter from NITT SSO redirect
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      // Store token as accessToken cookie so backend withCredentials fetches it
+      document.cookie = `accessToken=${token}; path=/; max-age=3600; SameSite=Lax;`;
+      // Also store in localStorage for local state compatibility
+      localStorage.setItem('token', token);
+    }
+
     // Re-fetch user explicitly after callback redirect to ensure state is up-to-date
     // then redirect to home
     if (refetchUser) {
