@@ -7,7 +7,7 @@ if (!baseURL) {
 }
 
 const api = axios.create({
-  baseURL: baseURL || 'http://127.0.0.1:8000/api',
+  baseURL: baseURL || '',
   withCredentials: true,
 });
 

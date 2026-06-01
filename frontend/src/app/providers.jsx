@@ -39,7 +39,13 @@ export function Providers({ children }) {
   }, []);
 
   const login = () => {
-    const ssoUrl = process.env.NEXT_PUBLIC_SSO_URL || 'https://cdi.nitt.edu/login';
+    const ssoUrl = process.env.NEXT_PUBLIC_SSO_URL;
+    if (!ssoUrl) {
+      console.error("SSO URL is not configured in environment variables (NEXT_PUBLIC_SSO_URL).");
+      // Fallback display message - using alert since toast is not imported in providers.jsx
+      alert("System SSO Login is currently misconfigured. Please contact system administrator.");
+      return;
+    }
     const redirectUrl = encodeURIComponent(window.location.origin + '/auth/callback');
     window.location.href = `${ssoUrl}?redirectTo=${redirectUrl}`;
   };

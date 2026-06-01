@@ -9,12 +9,22 @@ BASE_URL = "http://127.0.0.1:8000/api"
 async def run_tests():
     print("=== STARTING NEW VALIDATION RULES INTEGRATION TESTS ===")
     
-    # 1. Admin login
-    res = requests.post(f"{BASE_URL}/auth/admin/login", json={"username": "admin", "password": "adminadmin"})
-    if res.status_code != 200:
-        print("[-] Admin login failed!")
+    # Load JWT secret from .env
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+    jwt_secret = os.getenv("JWT_ACCESS_SECRET")
+    if not jwt_secret:
+        print("[-] JWT_ACCESS_SECRET is not configured in backend/.env!")
         sys.exit(1)
-    admin_headers = {"Authorization": f"Bearer {res.json()['access_token']}"}
+        
+    from jose import jwt
+    token = jwt.encode(
+        {"email": "114123003@nitt.edu", "role": "admin", "name": "Administrator"},
+        jwt_secret,
+        algorithm="HS256"
+    )
+    admin_headers = {"Authorization": f"Bearer {token}"}
+    print("[+] Generated mock admin token successfully.")
 
     # Retrieve current settings
     settings = requests.get(f"{BASE_URL}/settings/").json()

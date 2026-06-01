@@ -60,8 +60,12 @@ os.makedirs("generated_certificates", exist_ok=True)
 os.makedirs("signatures", exist_ok=True)
 app = FastAPI(title="Internship Management System", lifespan=lifespan)
 
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-origins = [url.strip() for url in frontend_url.split(",")]
+frontend_url = os.getenv("FRONTEND_URL")
+if not frontend_url:
+    print("WARNING: FRONTEND_URL environment variable is not configured. CORS origins will be empty.")
+    origins = []
+else:
+    origins = [url.strip() for url in frontend_url.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
