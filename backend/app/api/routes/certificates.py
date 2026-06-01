@@ -132,10 +132,7 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
         return final_cert
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
-def send_email_sync(sender_email, sender_password, msg):
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-        smtp.login(sender_email, sender_password)
-        smtp.send_message(msg)
+from app.utils.email import send_email_with_settings
 
 @router.post("/email/{internship_id}")
 async def email_certificate(internship_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
@@ -161,15 +158,8 @@ async def email_certificate(internship_id: UUID, db: AsyncSession = Depends(get_
     if not intern or not intern.email:
         raise HTTPException(status_code=400, detail="Intern does not have an email address set.")
         
-    sender_email = os.getenv("SENDER_EMAIL", "keerthivasan.220722@gmail.com")
-    sender_password = os.getenv("SENDER_PASSWORD")
-    
-    if not sender_password or sender_password == "your_app_password_here":
-        raise HTTPException(status_code=500, detail="SENDER_PASSWORD environment variable not set. Unable to send emails.")
-        
     msg = EmailMessage()
     msg['Subject'] = 'Internship Completion Certificate'
-    msg['From'] = sender_email
     msg['To'] = intern.email
     msg.set_content(f"Dear {intern.intern_name},\n\nCongratulations on successfully completing your internship.\nPlease find attached your internship completion certificate.\n\nBest regards,\n{current_user.faculty_name}")
     
@@ -184,7 +174,7 @@ async def email_certificate(internship_id: UUID, db: AsyncSession = Depends(get_
     msg.add_attachment(cert_data, maintype='application', subtype='pdf', filename=os.path.basename(cert_path))
     
     try:
-        await asyncio.to_thread(send_email_sync, sender_email, sender_password, msg)
+        await send_email_with_settings(db, msg)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
         
