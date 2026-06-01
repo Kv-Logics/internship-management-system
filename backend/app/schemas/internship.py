@@ -15,6 +15,9 @@ class InternshipBase(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     remarks: Optional[str] = None
+    transaction_number: Optional[str] = None
+    is_paid: Optional[bool] = False
+    is_emailed: Optional[bool] = False
 
 class InternshipCreate(InternshipBase):
     faculty_id: Optional[UUID] = None
@@ -25,6 +28,9 @@ class InternshipUpdate(InternshipBase):
     intern_phone: Optional[str] = None
     college_name: Optional[str] = None
     department: Optional[str] = None
+    transaction_number: Optional[str] = None
+    is_paid: Optional[bool] = None
+    is_emailed: Optional[bool] = None
 
 class InternshipResponse(InternshipBase):
     internship_id: UUID

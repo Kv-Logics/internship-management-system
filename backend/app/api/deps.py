@@ -1,28 +1,42 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from fastapi import Request, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from jose import JWTError, jwt
+import os
 from app.db.database import get_db
-from app.core.security import SECRET_KEY, ALGORITHM
 from app.models.faculty import Faculty
+import logging
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+logger = logging.getLogger(__name__)
 
-async def get_current_faculty(db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)):
+async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    token = request.cookies.get("accessToken")
+    if not token:
+        # Fallback to Authorization header if provided
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+        else:
+            raise credentials_exception
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
+        secret = os.getenv("JWT_ACCESS_SECRET")
+        if not secret:
+            logger.error("JWT_ACCESS_SECRET not configured")
+            raise HTTPException(status_code=500, detail="Internal server error: Missing JWT secret configuration")
+            
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
+        email: str = payload.get("email") or payload.get("sub")
         if email is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    
+
     if email == "admin@nitt.edu":
         return Faculty(
             faculty_id="00000000-0000-0000-0000-000000000000",
@@ -31,8 +45,21 @@ async def get_current_faculty(db: AsyncSession = Depends(get_db), token: str = D
             role="admin"
         )
 
+    # Upsert user based on SSO token payload
     result = await db.execute(select(Faculty).filter(Faculty.email == email))
     faculty = result.scalars().first()
-    if faculty is None:
-        raise credentials_exception
+    
+    if not faculty:
+        faculty = Faculty(
+            email=email,
+            faculty_name=payload.get("name") or payload.get("faculty_name") or email.split('@')[0],
+            role=payload.get("role") or "faculty"
+        )
+        db.add(faculty)
+        await db.commit()
+        await db.refresh(faculty)
+        
     return faculty
+
+# Alias for backward compatibility
+get_current_faculty = get_current_user

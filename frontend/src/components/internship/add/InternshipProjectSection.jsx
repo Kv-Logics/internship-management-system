@@ -1,8 +1,11 @@
 import React from 'react';
 import { Award, UserCheck, Edit3, BookOpen, Calendar } from 'lucide-react';
 
-export default function InternshipProjectSection({ formData, handleChange, user, faculties, selectedFacultyId, setSelectedFacultyId }) {
-  const minStartDate = "2026-05-18";
+export default function InternshipProjectSection({ formData, handleChange, user, faculties, selectedFacultyId, setSelectedFacultyId, settings }) {
+  const minStartDate = settings?.project_start_date || "2026-05-18";
+  const maxProjectEndDate = settings?.project_end_date || "2026-07-31";
+  const minDurationDays = parseInt(settings?.min_duration_days || "28");
+
   const calculateDateOffset = (dateStr, days) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -11,8 +14,8 @@ export default function InternshipProjectSection({ formData, handleChange, user,
     return d.toISOString().split('T')[0];
   };
   
-  const minEndDate = calculateDateOffset(formData.start_date, 28) || minStartDate;
-  const maxEndDate = calculateDateOffset(formData.start_date, 56) || "";
+  const minEndDate = calculateDateOffset(formData.start_date, minDurationDays) || minStartDate;
+  const maxEndDate = maxProjectEndDate;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-150 overflow-hidden">
@@ -50,7 +53,9 @@ export default function InternshipProjectSection({ formData, handleChange, user,
         )}
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Project / Internship Title</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Internship Work Title <span className="text-xs font-normal text-gray-500">(to fit: "...carried out the internship work titled...")</span>
+          </label>
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
               <Edit3 size={18} />
@@ -89,13 +94,12 @@ export default function InternshipProjectSection({ formData, handleChange, user,
           <label className="block text-sm font-semibold text-gray-700 mb-2">Mode of Internship</label>
           <select
             name="internship_mode"
-            value={formData.internship_mode}
+            value="Offline"
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-gray-50 cursor-not-allowed font-semibold text-gray-600"
+            disabled
           >
-            <option value="Online">Online</option>
-            <option value="Offline">Offline</option>
-            <option value="Hybrid">Hybrid</option>
+            <option value="Offline">Offline Only</option>
           </select>
         </div>
 
@@ -133,6 +137,7 @@ export default function InternshipProjectSection({ formData, handleChange, user,
             </div>
           </div>
         </div>
+
 
         <div className="md:col-span-2">
           <label className="block text-sm font-semibold text-gray-700 mb-2">Remarks / Special Directions (Optional)</label>

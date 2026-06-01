@@ -37,7 +37,7 @@ export default function SqlTerminal({ sqlQuery, setSqlQuery, handleExecuteQuery,
             <AlertCircle size={12} className="inline mr-1 text-amber-500" />
             <strong className="text-amber-500">Warning:</strong> Executing raw SQL statements bypassed standard application models and applies changes instantly inside the PostgreSQL records.
           </p>
-          <button onClick={handleExecuteQuery} disabled={executingQuery} className="flex items-center space-x-2 px-6 py-3 bg-indigo-650 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-650/10 cursor-pointer">
+          <button onClick={handleExecuteQuery} disabled={executingQuery} className="flex items-center space-x-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/10 cursor-pointer">
             {executingQuery ? (<><RefreshCw size={14} className="animate-spin" /><span>Processing...</span></>) : (<><Play size={14} fill="white" /><span>Execute SQL</span></>)}
           </button>
         </div>
@@ -82,7 +82,7 @@ export default function SqlTerminal({ sqlQuery, setSqlQuery, handleExecuteQuery,
         </div>
         <div className="space-y-4">
           {dbSchema.map((table, idx) => (
-            <div key={idx} className="space-y-2 bg-gray-50/50 border border-gray-150 p-3.5 rounded-2xl"><div className="flex items-center justify-between"><span onClick={() => setSqlQuery(`SELECT * FROM ${table.name} LIMIT 10;`)} className="text-xs font-mono font-bold text-indigo-650 hover:underline cursor-pointer flex items-center" title="Generate quick query"><span>{table.name}</span></span><Columns size={12} className="text-gray-400" /></div><p className="text-[10px] text-gray-400 italic leading-snug">{table.description}</p><div className="pt-2 border-t border-gray-200/50 space-y-1">{table.columns.map((col, cidx) => (<div key={cidx} className="text-[10px] font-mono text-gray-500 flex items-center"><span className="w-1 h-1 bg-indigo-500 rounded-full mr-1.5"></span><span>{col}</span></div>))}</div></div>
+            <div key={idx} className="space-y-2 bg-gray-50/50 border border-gray-150 p-3.5 rounded-2xl"><div className="flex items-center justify-between"><span onClick={() => setSqlQuery(`SELECT * FROM ${table.name} LIMIT 10;`)} className="text-xs font-mono font-bold text-indigo-600 hover:underline cursor-pointer flex items-center" title="Generate quick query"><span>{table.name}</span></span><Columns size={12} className="text-gray-400" /></div><p className="text-[10px] text-gray-400 italic leading-snug">{table.description}</p><div className="pt-2 border-t border-gray-200/50 space-y-1">{table.columns.map((col, cidx) => (<div key={cidx} className="text-[10px] font-mono text-gray-500 flex items-center"><span className="w-1 h-1 bg-indigo-500 rounded-full mr-1.5"></span><span>{col}</span></div>))}</div></div>
           ))}
         </div>
         <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-2xl text-[10px] text-indigo-700 leading-relaxed font-semibold"><HelpCircle size={14} className="inline mr-1 text-indigo-600 shrink-0" /><span>Click on any blue table name to auto-populate the terminal with a quick preview query!</span></div>

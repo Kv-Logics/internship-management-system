@@ -9,29 +9,14 @@ import DashboardStats from '../components/dashboard/DashboardStats';
 import MentorshipProgress from '../components/dashboard/MentorshipProgress';
 import AdminOperationsPanel from '../components/dashboard/AdminOperationsPanel';
 
-const fetchDashboardStats = async () => {
-  const res = await api.get('/internships/');
-  const all = res.data;
-  const now = new Date();
-  
-  let ongoing = 0;
-  let completed = 0;
-  
-  all.forEach(item => {
-    const end = new Date(item.end_date);
-    if (end < now) completed++;
-    else ongoing++;
-  });
-
-  return { 
-    total: all.length, 
-    ongoing, 
-    completed,
-    recent: all.slice(0, 5) // Return up to 5 most recent records
-  };
-};
+// fetchDashboardStats removed. Query caching handles calculation via the select option.
 
 export default function Dashboard() {
+  useEffect(() => {
+    console.timeEnd('Dashboard-Render');
+  });
+  console.time('Dashboard-Render');
+
   const { user } = useContext(AuthContext);
   const [facultiesCount, setFacultiesCount] = useState(0);
 
@@ -39,10 +24,7 @@ export default function Dashboard() {
     if (user?.role === 'admin') {
       const fetchFaculties = async () => {
         try {
-          const token = localStorage.getItem('token');
-          const res = await api.get('/auth/faculties', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await api.get('/auth/faculties');
           setFacultiesCount(res.data.length);
         } catch (e) {
           console.error(e);
@@ -53,8 +35,24 @@ export default function Dashboard() {
   }, [user]);
 
   const { data: stats, isLoading, isError } = useQuery({
-    queryKey: ['dashboardStats'],
-    queryFn: fetchDashboardStats
+    queryKey: ['internships', 'all'],
+    queryFn: async () => (await api.get('/internships/')).data,
+    select: (all) => {
+      const now = new Date();
+      let ongoing = 0;
+      let completed = 0;
+      all.forEach(item => {
+        const end = new Date(item.end_date);
+        if (end < now) completed++;
+        else ongoing++;
+      });
+      return { 
+        total: all.length, 
+        ongoing, 
+        completed,
+        recent: all.slice(0, 5)
+      };
+    }
   });
 
   if (isLoading) {

@@ -12,17 +12,87 @@ import InternshipFilters from '../../components/internship/InternshipFilters';
 import InternshipTable from '../../components/internship/InternshipTable';
 import PreviewInternshipModal from '../../components/internship/PreviewInternshipModal';
 import EditInternshipModal from '../../components/internship/EditInternshipModal';
+import TransactionInputModal from '../../components/internship/TransactionInputModal';
 
 export default function InternshipList() {
   const queryClient = useQueryClient();
   const { user } = useContext(AuthContext);
   const [search, setSearch] = useState('');
+  const [settings, setSettings] = useState({
+    project_start_date: '2026-05-18',
+    project_end_date: '2026-07-31',
+    min_duration_days: '28',
+    max_students_per_faculty: '5',
+    max_students_per_year: '100',
+    allow_faculty_edit: 'true',
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await api.get('/settings/');
+        setSettings((prev) => ({ ...prev, ...res.data }));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSettings();
+  }, []);
   
   // Status filter tabs state: 'all' | 'not_started' | 'ongoing' | 'pending' | 'complete'
   const [activeTab, setActiveTab] = useState('ongoing');
 
   // Preview Modal state
   const [previewItem, setPreviewItem] = useState(null);
+
+  // Transaction Modal state
+  const [txnModalOpen, setTxnModalOpen] = useState(false);
+  const [txnTargetItem, setTxnTargetItem] = useState(null);
+
+  const handleEnterTxn = (item) => {
+    setTxnTargetItem(item);
+    setTxnModalOpen(true);
+  };
+
+  const handleSaveTxn = async (txn, options = {}) => {
+    if (!txnTargetItem) return;
+    const isAdmin = user?.role === 'admin';
+    const isDecline = options.isDecline;
+    
+    const loadId = toast.loading(
+      isDecline 
+        ? "Declining payment verification..." 
+        : (isAdmin ? "Verifying and marking payment as paid..." : "Submitting transaction number...")
+    );
+    try {
+      const payload = {
+        internship_title: txnTargetItem.internship_title,
+        start_date: txnTargetItem.start_date,
+        end_date: txnTargetItem.end_date,
+        transaction_number: isDecline ? null : txn,
+        is_paid: isDecline ? false : (isAdmin ? true : txnTargetItem.is_paid),
+      };
+      
+      if (isDecline && options.remarks) {
+        payload.remarks = options.remarks;
+      }
+      
+      const response = await api.put(`/internships/${txnTargetItem.internship_id}`, payload);
+      toast.success(
+        isDecline 
+          ? "Payment verification declined." 
+          : (isAdmin ? "Payment verified successfully!" : "Transaction number submitted for verification!"), 
+        { id: loadId }
+      );
+      setTxnModalOpen(false);
+      refreshList();
+      if (previewItem && previewItem.internship_id === txnTargetItem.internship_id) {
+        setPreviewItem(response.data);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to process payment update", { id: loadId });
+    }
+  };
 
   // Edit Modal state
   const [editingItem, setEditingItem] = useState(null);
@@ -46,7 +116,10 @@ export default function InternshipList() {
     queryFn: async () => (await api.get(`/internships/?search=${search}`)).data,
   });
 
-  const refreshList = () => queryClient.invalidateQueries({ queryKey: ['internships'] });
+  const refreshList = () => {
+    queryClient.invalidateQueries({ queryKey: ['internships'] });
+    queryClient.invalidateQueries({ queryKey: ['layoutInternships'] });
+  };
 
   const handleGenerateCertificate = async (id, e) => {
     if (e) e.stopPropagation();
@@ -91,10 +164,12 @@ export default function InternshipList() {
       department: item.intern?.department || '',
       internship_title: item.internship_title || '',
       internship_domain: item.internship_domain || '',
-      internship_mode: item.internship_mode || 'Hybrid',
+      internship_mode: 'Offline',
       start_date: item.start_date || '',
       end_date: item.end_date || '',
-      remarks: item.remarks || ''
+      remarks: item.remarks || '',
+      transaction_number: item.transaction_number || '',
+      is_paid: item.is_paid || false
     });
   };
 
@@ -104,12 +179,26 @@ export default function InternshipList() {
       return;
     }
     
+    const pStart = new Date(settings.project_start_date);
+    const pEnd = new Date(settings.project_end_date);
     const startDate = new Date(editForm.start_date);
     const endDate = new Date(editForm.end_date);
+
+    if (startDate < pStart) {
+      toast.error(`Internship start date must be on or after the academic year start date of ${settings.project_start_date}.`);
+      return;
+    }
+
+    if (endDate > pEnd) {
+      toast.error(`Internship end date must be on or before the academic year end date of ${settings.project_end_date}.`);
+      return;
+    }
+    
     const diffTime = Math.abs(endDate - startDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 28 || diffDays > 56) {
-      toast.error('Internship duration must be exactly between 4 weeks and 8 weeks.');
+    const minDays = parseInt(settings.min_duration_days);
+    if (diffDays < minDays) {
+      toast.error(`Internship duration must be at least ${minDays} days.`);
       return;
     }
 
@@ -126,7 +215,9 @@ export default function InternshipList() {
         intern_email: editForm.intern_email,
         intern_phone: editForm.intern_phone,
         college_name: editForm.college_name,
-        department: editForm.department
+        department: editForm.department,
+        transaction_number: editForm.transaction_number || '',
+        is_paid: editForm.is_paid
       });
       setEditingItem(null);
       refreshList();
@@ -235,9 +326,10 @@ export default function InternshipList() {
   return (
     <div className="space-y-6">
       <InternshipFilters search={search} setSearch={setSearch} activeTab={activeTab} setActiveTab={setActiveTab} internships={internships} getRecordStatus={getRecordStatus} />
-      <InternshipTable isLoading={isLoading} filteredInternships={filteredInternships} getRecordStatus={getRecordStatus} calculateDuration={calculateDuration} handleUpload={handleUpload} setPreviewItem={setPreviewItem} handleEditClick={handleEditClick} handlePreviewCertificate={handlePreviewCertificate} handleSendEmail={handleSendEmail} user={user} handleDeleteRecord={handleDeleteRecord} />
-      <PreviewInternshipModal previewItem={previewItem} setPreviewItem={setPreviewItem} calculateDuration={calculateDuration} getRecordStatus={getRecordStatus} handlePreviewCertificate={handlePreviewCertificate} user={user} />
-      <EditInternshipModal editingItem={editingItem} setEditingItem={setEditingItem} editForm={editForm} setEditForm={setEditForm} handleSaveEdit={handleSaveEdit} />
+      <InternshipTable isLoading={isLoading} filteredInternships={filteredInternships} getRecordStatus={getRecordStatus} calculateDuration={calculateDuration} handleUpload={handleUpload} setPreviewItem={setPreviewItem} handleEditClick={handleEditClick} handlePreviewCertificate={handlePreviewCertificate} handleSendEmail={handleSendEmail} user={user} handleDeleteRecord={handleDeleteRecord} onEnterTxn={handleEnterTxn} settings={settings} />
+      <PreviewInternshipModal previewItem={previewItem} setPreviewItem={setPreviewItem} calculateDuration={calculateDuration} getRecordStatus={getRecordStatus} handlePreviewCertificate={handlePreviewCertificate} user={user} onEnterTxn={handleEnterTxn} />
+      <EditInternshipModal editingItem={editingItem} setEditingItem={setEditingItem} editForm={editForm} setEditForm={setEditForm} handleSaveEdit={handleSaveEdit} user={user} settings={settings} />
+      <TransactionInputModal isOpen={txnModalOpen} onClose={() => setTxnModalOpen(false)} onSubmit={handleSaveTxn} initialValue={txnTargetItem?.transaction_number || ''} isAdmin={user?.role === 'admin'} />
     </div>
   );
 }

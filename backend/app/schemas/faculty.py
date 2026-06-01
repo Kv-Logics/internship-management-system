@@ -10,12 +10,6 @@ class FacultyBase(BaseModel):
 class FacultyCreate(FacultyBase):
     pass
 
-class OTPRequest(BaseModel):
-    email: EmailStr
-
-class OTPVerifyRequest(BaseModel):
-    email: EmailStr
-    otp: str
 
 class FacultyResponse(FacultyBase):
     faculty_id: UUID

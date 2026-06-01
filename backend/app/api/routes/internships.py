@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.db.database import get_db
 from app.models.internship import Internship
@@ -20,14 +20,53 @@ async def create_internship(intern_id: UUID, internship: InternshipCreate, db: A
     if current_user.role in ("admin", "dean") and internship.faculty_id is not None:
         target_faculty_id = internship.faculty_id
 
-    # Check maximum intern limit
+    # Query system settings
+    from app.models.system_setting import SystemSetting
+    from datetime import datetime
+    settings_res = await db.execute(select(SystemSetting))
+    settings = {s.key: s.value for s in settings_res.scalars().all()}
+    
+    max_faculty_students = int(settings.get("max_students_per_faculty", "5"))
+    max_year_students = int(settings.get("max_students_per_year", "100"))
+    min_days = int(settings.get("min_duration_days", "28"))
+    project_start_str = settings.get("project_start_date", "2026-05-18")
+    project_end_str = settings.get("project_end_date", "2026-07-31")
+
+    # Check maximum intern limit per faculty
     count_result = await db.execute(select(func.count()).select_from(Internship).filter(Internship.faculty_id == target_faculty_id))
-    if count_result.scalar() >= 5:
-        raise HTTPException(status_code=400, detail="The chosen faculty mentor has already reached the maximum limit of 5 interns.")
+    if count_result.scalar() >= max_faculty_students:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The chosen faculty mentor has already reached the maximum limit of {max_faculty_students} interns."
+        )
+
+    # Check internship project period boundaries
+    p_start = datetime.strptime(project_start_str, "%Y-%m-%d").date()
+    p_end = datetime.strptime(project_end_str, "%Y-%m-%d").date()
+    if internship.start_date < p_start:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Internship start date must be on or after the academic year start date of {project_start_str}."
+        )
+    if internship.end_date > p_end:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Internship end date must be on or before the academic year end date of {project_end_str}."
+        )
+
+    # Check minimum duration
+    duration = (internship.end_date - internship.start_date).days
+    if duration < min_days:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Internship duration must be at least {min_days} days."
+        )
 
     internship_data = internship.model_dump()
     internship_data.pop("faculty_mentor", None)
     internship_data.pop("faculty_id", None)
+    if getattr(current_user, "role", "faculty") != "admin":
+        internship_data["is_paid"] = False
 
     new_internship = Internship(
         intern_id=intern_id,
@@ -41,7 +80,7 @@ async def create_internship(intern_id: UUID, internship: InternshipCreate, db: A
     
     # Fetch the newly created internship with relationships eagerly loaded to prevent MissingGreenlet error
     result = await db.execute(select(Internship).options(
-        joinedload(Internship.documents),
+        selectinload(Internship.documents),
         joinedload(Internship.certificate),
         joinedload(Internship.intern),
         joinedload(Internship.faculty)
@@ -53,7 +92,7 @@ async def create_internship(intern_id: UUID, internship: InternshipCreate, db: A
 async def read_internships(skip: int = 0, limit: int = 100, search: Optional[str] = None, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
     from app.models.faculty import Faculty
     query = select(Internship).options(
-        joinedload(Internship.documents),
+        selectinload(Internship.documents),
         joinedload(Internship.certificate),
         joinedload(Internship.intern),
         joinedload(Internship.faculty)
@@ -77,7 +116,7 @@ async def read_internships(skip: int = 0, limit: int = 100, search: Optional[str
 @router.get("/{internship_id}", response_model=InternshipResponse)
 async def read_internship(internship_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
     result = await db.execute(select(Internship).options(
-        joinedload(Internship.documents),
+        selectinload(Internship.documents),
         joinedload(Internship.certificate),
         joinedload(Internship.intern),
         joinedload(Internship.faculty)
@@ -93,7 +132,7 @@ async def read_internship(internship_id: UUID, db: AsyncSession = Depends(get_db
 @router.put("/{internship_id}", response_model=InternshipResponse)
 async def update_internship(internship_id: UUID, internship_update: InternshipUpdate, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
     result = await db.execute(select(Internship).options(
-        joinedload(Internship.documents),
+        selectinload(Internship.documents),
         joinedload(Internship.certificate),
         joinedload(Internship.intern),
         joinedload(Internship.faculty)
@@ -104,7 +143,65 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
     if getattr(current_user, "role", "faculty") not in ("dean", "admin") and internship.faculty_id != current_user.faculty_id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this internship")
     
+    # Check allow_faculty_edit system setting if the current user is a regular faculty member
+    if getattr(current_user, "role", "faculty") not in ("dean", "admin"):
+        from app.models.system_setting import SystemSetting
+        settings_res = await db.execute(select(SystemSetting).filter(SystemSetting.key == "allow_faculty_edit"))
+        allow_edit_setting = settings_res.scalars().first()
+        if allow_edit_setting and allow_edit_setting.value == "false":
+            raise HTTPException(
+                status_code=403,
+                detail="Faculties are currently restricted from editing records by the administrator."
+            )
+            
     update_data = internship_update.model_dump(exclude_unset=True)
+    if getattr(current_user, "role", "faculty") != "admin":
+        update_data.pop("is_paid", None)
+    
+    # Query system settings
+    from app.models.system_setting import SystemSetting
+    from datetime import datetime, date
+    settings_res = await db.execute(select(SystemSetting))
+    settings = {s.key: s.value for s in settings_res.scalars().all()}
+    
+    max_faculty_students = int(settings.get("max_students_per_faculty", "5"))
+    min_days = int(settings.get("min_duration_days", "28"))
+    project_start_str = settings.get("project_start_date", "2026-05-18")
+    project_end_str = settings.get("project_end_date", "2026-07-31")
+
+    # Helper function to normalize date formats
+    def to_date_obj(val):
+        if isinstance(val, (date, datetime)):
+            return val if isinstance(val, date) else val.date()
+        return datetime.strptime(str(val), "%Y-%m-%d").date()
+
+    # Validate dates if updated
+    new_start = update_data.get("start_date", internship.start_date)
+    new_end = update_data.get("end_date", internship.end_date)
+    if new_start is not None and new_end is not None:
+        start_dt = to_date_obj(new_start)
+        end_dt = to_date_obj(new_end)
+        
+        p_start = datetime.strptime(project_start_str, "%Y-%m-%d").date()
+        p_end = datetime.strptime(project_end_str, "%Y-%m-%d").date()
+        
+        if start_dt < p_start:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Internship start date must be on or after the academic year start date of {project_start_str}."
+            )
+        if end_dt > p_end:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Internship end date must be on or before the academic year end date of {project_end_str}."
+            )
+            
+        duration = (end_dt - start_dt).days
+        if duration < min_days:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Internship duration must be at least {min_days} days."
+            )
     
     intern_email = update_data.pop("intern_email", None)
     intern_name = update_data.pop("intern_name", None)
@@ -137,7 +234,7 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
     
     # Re-fetch the updated internship with relationships eagerly loaded
     result = await db.execute(select(Internship).options(
-        joinedload(Internship.documents),
+        selectinload(Internship.documents),
         joinedload(Internship.certificate),
         joinedload(Internship.intern),
         joinedload(Internship.faculty)
@@ -147,8 +244,12 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
     # Automatically regenerate the certificate PDF if it already exists to reflect the edits
     if updated_internship and updated_internship.certificate:
         from app.services.certificate_service import generate_certificate_pdf
+        from app.models.faculty import Faculty
         import asyncio
         mentor_name = updated_internship.faculty.faculty_name if updated_internship.faculty else "Assigned Faculty"
+        
+        dean_result = await db.execute(select(Faculty).filter(Faculty.role == "dean"))
+        dean = dean_result.scalars().first()
         
         await asyncio.to_thread(
             generate_certificate_pdf,
@@ -161,8 +262,16 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
             output_path=updated_internship.certificate.certificate_path,
             certificate_number=updated_internship.certificate.certificate_number,
             mentor_name=mentor_name,
-            faculty_signature_path=updated_internship.faculty.signature_path if hasattr(updated_internship.faculty, 'signature_path') else None
+            faculty_signature_path=updated_internship.faculty.signature_path if hasattr(updated_internship.faculty, 'signature_path') else None,
+            dean_signature_path=dean.signature_path if dean else None
         )
+    elif updated_internship and getattr(updated_internship, "is_paid", False) and updated_internship.end_date <= datetime.utcnow().date():
+        # Auto-generate if eligible and no certificate exists yet
+        try:
+            from app.api.routes.certificates import _core_generate_certificate
+            await _core_generate_certificate(updated_internship.internship_id, db)
+        except Exception as e:
+            print(f"Failed to auto-generate certificate: {e}")
 
     return updated_internship
 

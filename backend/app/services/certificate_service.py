@@ -1,27 +1,17 @@
-from reportlab.lib.pagesizes import landscape, letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
-from reportlab.lib import colors
-from reportlab.platypus import Paragraph, Frame, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER
+from PIL import Image, ImageDraw, ImageFont
 import os
-import urllib.request
+
 
 def download_logo_if_needed():
     logo_path = os.path.join(os.path.dirname(__file__), '..', '..', 'nitt_logo.png')
     logo_path = os.path.abspath(logo_path)
-    if not os.path.exists(logo_path):
-        try:
-            print(f"Downloading NIT logo to: {logo_path}")
-            url = "https://upload.wikimedia.org/wikipedia/en/5/51/NITT_logo.png"
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
-            with urllib.request.urlopen(req) as response, open(logo_path, 'wb') as out_file:
-                out_file.write(response.read())
-        except Exception as e:
-            print(f"WARNING: Failed to download NIT logo ({e}).")
-            return None
-    return logo_path
+    if os.path.exists(logo_path):
+        return logo_path
+    cwd_path = os.path.abspath("nitt_logo.png")
+    if os.path.exists(cwd_path):
+        return cwd_path
+    return None
+
 
 def generate_certificate_pdf(
     intern_name: str,
@@ -33,132 +23,169 @@ def generate_certificate_pdf(
     output_path: str,
     certificate_number: str,
     mentor_name: str = "Assigned Faculty",
-    faculty_signature_path: str = None
+    faculty_signature_path: str = None,
+    dean_signature_path: str = None
 ):
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
-    c = canvas.Canvas(output_path, pagesize=landscape(letter))
-    width, height = landscape(letter)
+    template_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "reference_image.jpeg")
+    )
+    if not os.path.exists(template_path):
+        template_path = os.path.abspath("reference_image.jpeg")
 
-    # --- Borders ---
-    c.setStrokeColor(colors.HexColor("#0f172a"))
-    c.setLineWidth(4.5)
-    c.rect(0.4*inch, 0.4*inch, width - 0.8*inch, height - 0.8*inch)
-    c.setStrokeColor(colors.HexColor("#3b82f6"))
-    c.setLineWidth(1.0)
-    c.rect(0.48*inch, 0.48*inch, width - 0.96*inch, height - 0.96*inch)
+    img = Image.open(template_path).convert("RGBA")
+    draw = ImageDraw.Draw(img)
 
-    # --- Logo ---
-    logo_path = download_logo_if_needed()
-    if logo_path and os.path.exists(logo_path):
-        try:
-            c.drawImage(logo_path, width/2.0 - 40, height - 1.8*inch, width=80, height=80, mask='auto')
-        except Exception as e:
-            print(f"Error rendering logo: {e}")
-
-    # --- Verification ID ---
-    if certificate_number:
-        c.setFont("Helvetica", 9)
-        c.setFillColor(colors.HexColor("#475569"))
-        c.drawString(0.8*inch, height - 0.8*inch, f"VERIFICATION ID: {certificate_number}")
-
-    # --- Date formatting ---
+    # ── Fonts ────────────────────────────────────────────────────────────────
+    font_dir = r"C:\Windows\Fonts"
     try:
-        start_str = f"{start_date.day} {start_date.strftime('%B %Y')}"
-        end_str   = f"{end_date.day} {end_date.strftime('%B %Y')}"
+        font_bold  = ImageFont.truetype(os.path.join(font_dir, "timesbd.ttf"), 28)
+        font_verif = ImageFont.truetype(os.path.join(font_dir, "timesbd.ttf"), 15)
+    except IOError:
+        # Linux / CI fallback
+        try:
+            font_bold  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", 28)
+            font_verif = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", 16)
+        except IOError:
+            font_bold  = ImageFont.load_default()
+            font_verif = ImageFont.load_default()
+
+    DARK = (30, 41, 59, 255)
+    GREY = (100, 116, 139, 255)
+
+    # ── Drawing helpers ───────────────────────────────────────────────────────
+    def _text_size(text, font):
+        bb = draw.textbbox((0, 0), text, font=font)
+        return bb[2] - bb[0], bb[3] - bb[1]
+
+    def draw_on_field(text, x_start, x_end, underline_y, font, fill=DARK):
+        """Centre text horizontally within [x_start, x_end] and sit it ON the underline."""
+        tw, th = _text_size(text, font)
+        cx = (x_start + x_end) // 2
+        x  = cx - tw // 2
+        y  = underline_y - th - 10         # 10 px breathing room above the line
+        draw.text((x, y), text, font=font, fill=fill)
+
+    def draw_at_center(text, cx, underline_y, font, fill=DARK):
+        """Centre text on a fixed x-centre and sit it ON the underline."""
+        tw, th = _text_size(text, font)
+        x = cx - tw // 2
+        y = underline_y - th - 10
+        draw.text((x, y), text, font=font, fill=fill)
+
+    # ── Field map (measured from the 1536×1024 template) ─────────────────────
+    #
+    #  All y-values are the TOP of the underline stroke.
+    #  x_start / x_end are the left/right extents of the blank field area.
+    #
+    #  Row              underline_y   x_start   x_end   notes
+    #  ───────────────  ───────────   ───────   ─────   ──────────────────────
+    #  Name             383           391       1165    after "Mr./Ms."
+    #  College          428           287       943     before "(Institute…)"
+    #  Date (start dd)  598           466       504     centre = 485
+    #  Date (start mm)  598           528       568     centre = 548
+    #  Date (start yy)  598           592       673     centre = 632
+    #  Date (end   dd)  598           708       747     centre = 727
+    #  Date (end   mm)  598           772       812     centre = 792
+    #  Date (end   yy)  598           836       927     centre = 881
+    #  Title line 1     679           248       1280
+    #  Title line 2     719           248       1280
+    #  Mentor           761           555       1100    after "Dr./Prof."
+    #  Bottom date dd   889           —         —       centre = 420
+    #  Bottom date mm   889           —         —       centre = 480
+    #  Bottom date yy   889           —         —       centre = 560
+
+    # 1. Verification ID — bottom center, below the decorative divider (y~932)
+    if certificate_number:
+        text = f"VERIFICATION ID: {certificate_number}"
+        tw, th = _text_size(text, font_verif)
+        draw.text((768 - tw // 2, 945), text, font=font_verif, fill=GREY)
+
+    # Cover "(Institute/University Name)" pre-printed text on template
+    draw.rectangle([930, 400, 1200, 440], fill=(255, 255, 255, 255))
+
+    # 2. Student name
+    draw_on_field(intern_name.title(), 391, 1165, 383, font_bold)
+
+    # 3. College / institute name
+    draw_on_field(college_name.title(), 287, 943, 428, font_bold)
+
+    # 4. Dates ─────────────────────────────────────────────────────────────────
+    try:
+        sd = start_date.strftime('%d')
+        sm = start_date.strftime('%m')
+        sy = start_date.strftime('%Y')
+        ed = end_date.strftime('%d')
+        em = end_date.strftime('%m')
+        ey = end_date.strftime('%Y')
     except Exception:
-        start_str, end_str = str(start_date), str(end_date)
+        sd = sm = ""; sy = str(start_date)
+        ed = em = ""; ey = str(end_date)
 
-    # --- Styles ---
-    styles = getSampleStyleSheet()
+    # Start date slots
+    draw_at_center(sd, 485, 598, font_bold)
+    draw_at_center(sm, 548, 598, font_bold)
+    draw_at_center(sy, 632, 598, font_bold)
+    # End date slots
+    draw_at_center(ed, 727, 598, font_bold)
+    draw_at_center(em, 792, 598, font_bold)
+    draw_at_center(ey, 881, 598, font_bold)
 
-    title_style = ParagraphStyle(
-        'TitleStyle', parent=styles['Heading1'],
-        fontName='Times-Bold', fontSize=28,
-        textColor=colors.HexColor("#1e3b8e"),
-        alignment=TA_CENTER, spaceAfter=20
-    )
-    subtitle_style = ParagraphStyle(
-        'SubtitleStyle', parent=styles['Normal'],
-        fontName='Times-Italic', fontSize=15,
-        textColor=colors.HexColor("#475569"),
-        alignment=TA_CENTER, spaceAfter=20
-    )
-    name_style = ParagraphStyle(
-        'NameStyle', parent=styles['Heading2'],
-        fontName='Times-Bold', fontSize=26,
-        textColor=colors.HexColor("#0f172a"),
-        alignment=TA_CENTER, spaceAfter=20
-    )
-    body_style = ParagraphStyle(
-        'BodyStyle', parent=styles['Normal'],
-        fontName='Times-Roman', fontSize=13,
-        textColor=colors.HexColor("#334155"),
-        alignment=TA_CENTER, spaceAfter=12, leading=20
-    )
-    project_title_style = ParagraphStyle(
-        'ProjectTitleStyle', parent=styles['Normal'],
-        fontName='Times-Bold', fontSize=15,
-        textColor=colors.HexColor("#1e3b8e"),
-        alignment=TA_CENTER, spaceAfter=12
-    )
+    # 5. Project / internship title (up to two lines)
+    MAX_CHARS = 55
+    if len(title) > MAX_CHARS:
+        words = title.split()
+        line1, line2 = "", ""
+        for word in words:
+            candidate = (line1 + " " + word).strip()
+            if len(candidate) <= MAX_CHARS:
+                line1 = candidate
+            else:
+                line2 = (line2 + " " + word).strip()
+        draw_on_field(line1, 248, 1280, 679, font_bold)
+        if line2:
+            draw_on_field(line2, 248, 1280, 719, font_bold)
+    else:
+        draw_on_field(title, 248, 1280, 679, font_bold)
 
-    # --- Story ---
-    story = []
-    story.append(Paragraph("INTERNSHIP COMPLETION CERTIFICATE", title_style))
-    story.append(Paragraph("This is to certify that", subtitle_style))
-    story.append(Paragraph(intern_name.title(), name_style))
-
-    body1 = (
-        f"a student of {college_name}, has successfully completed the "
-        f"Summer Internship Program 2026 at the National Institute of Technology, "
-        f"Tiruchirappalli from {start_str} to {end_str}."
-    )
-    story.append(Paragraph(body1, body_style))
-
-    story.append(Paragraph("During the internship period, the student worked on the project", body_style))
-    story.append(Paragraph(title, project_title_style))
-
-    mentor_display = mentor_name.title()
-    if not mentor_display.startswith("Dr.") and not mentor_display.startswith("Dr "):
+    # 6. Mentor name (ensure "Dr." / "Prof." prefix)
+    mentor_display = mentor_name.strip()
+    if not any(mentor_display.startswith(p) for p in ("Dr.", "Dr ", "Prof.", "Prof ")):
         mentor_display = f"Dr. {mentor_display}"
-    body3 = f"in the domain of {domain} under the guidance of {mentor_display}."
-    story.append(Paragraph(body3, body_style))
+    draw_on_field(mentor_display, 555, 1100, 761, font_bold)
 
-    frame_width  = width - 2*inch
-    frame_height = height - 3.2*inch
-    f = Frame(1*inch, 1.5*inch, frame_width, frame_height, showBoundary=0)
-    f.addFromList(story, c)
+    # 7. Issue date (bottom-left) — y=969, slots: dd c=224, mm c=276, yyyy c=352
+    draw_at_center(ed, 224, 969, font_bold)
+    draw_at_center(em, 276, 969, font_bold)
+    draw_at_center(ey, 352, 969, font_bold)
 
-    # --- Signature block (bottom-left) ---
-    c.setStrokeColor(colors.HexColor("#94a3b8"))
-    c.setLineWidth(1)
+    # White out redundant "Signature: _______" lines
+    draw.rectangle([100, 863, 650, 900], fill=(255, 255, 255, 255))
+    draw.rectangle([850, 863, 1350, 900], fill=(255, 255, 255, 255))
 
-    left_x = 2.5*inch
-    # Draw e-signature image above the line if available
+    # 8. Mentor signature — image sits ABOVE the line at y=825, centered x=258-601
     if faculty_signature_path and os.path.exists(faculty_signature_path):
         try:
-            c.drawImage(
-                faculty_signature_path,
-                left_x - 1.0*inch, 1.25*inch,
-                width=2.0*inch, height=0.7*inch,
-                mask='auto', preserveAspectRatio=True
-            )
+            sig = Image.open(faculty_signature_path).convert("RGBA")
+            sig.thumbnail((180, 45), Image.Resampling.LANCZOS)
+            sw, sh = sig.size
+            # Place image above the line: bottom of image at y=820
+            img.alpha_composite(sig, (int(429 - sw / 2), int(820 - sh)))
         except Exception as e:
-            print("Failed to draw signature:", e)
+            print("Faculty signature overlay failed:", e)
 
-    c.line(left_x - 1.25*inch, 1.2*inch, left_x + 1.25*inch, 1.2*inch)
-    c.setFont("Helvetica-Bold", 11)
-    c.setFillColor(colors.HexColor("#0f172a"))
-    c.drawCentredString(left_x, 0.95*inch, "FACULTY MENTOR")
-    c.setFont("Helvetica", 9)
-    c.setFillColor(colors.HexColor("#64748b"))
-    c.drawCentredString(left_x, 0.75*inch, "National Institute of Technology")
+    # 9. Dean signature — image sits ABOVE the line at y=825, centered x=959-1296
+    if dean_signature_path and os.path.exists(dean_signature_path):
+        try:
+            sig = Image.open(dean_signature_path).convert("RGBA")
+            sig.thumbnail((180, 45), Image.Resampling.LANCZOS)
+            sw, sh = sig.size
+            # Place image above the line: bottom of image at y=820
+            img.alpha_composite(sig, (int(1127 - sw / 2), int(820 - sh)))
+        except Exception as e:
+            print("Dean signature overlay failed:", e)
 
-    # --- Issue date (bottom-right) ---
-    c.setFont("Helvetica-Bold", 10)
-    c.setFillColor(colors.HexColor("#475569"))
-    c.drawString(width - 2.8*inch, 0.95*inch, f"Issued on: {end_str}")
-
-    c.save()
+    # Save
+    img.convert("RGB").save(output_path, "PDF", resolution=100.0)
     return output_path

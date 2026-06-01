@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Date, ForeignKey
+from sqlalchemy import Column, String, Date, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.orm import relationship
@@ -16,7 +16,8 @@ class Internship(Base):
 
     intern_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("interns.intern_id")
+        ForeignKey("interns.intern_id"),
+        index=True
     )
 
     internship_title = Column(String, nullable=False)
@@ -37,6 +38,11 @@ class Internship(Base):
     end_date = Column(Date)
 
     remarks = Column(String)
+
+    transaction_number = Column(String, nullable=True)
+
+    is_paid = Column(Boolean, default=False, server_default="false", nullable=False)
+    is_emailed = Column(Boolean, default=False, server_default="false", nullable=False)
 
     intern = relationship("Intern", back_populates="internships")
     faculty = relationship("Faculty", back_populates="internships")

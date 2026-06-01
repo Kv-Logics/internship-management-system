@@ -5,21 +5,44 @@ import api from '../../../services/api';
 import toast from 'react-hot-toast';
 import { ArrowRight } from 'lucide-react';
 import { AuthContext } from '../../providers';
+import { useQueryClient } from '@tanstack/react-query';
 import StudentProfileSection from '../../../components/internship/add/StudentProfileSection';
 import InternshipProjectSection from '../../../components/internship/add/InternshipProjectSection';
 
 export default function AddInternship() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState({
+    project_start_date: '2026-05-18',
+    project_end_date: '2026-07-31',
+    min_duration_days: '28',
+    max_students_per_faculty: '5',
+    max_students_per_year: '100',
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await api.get('/settings/');
+        setSettings((prev) => ({ ...prev, ...res.data }));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSettings();
+  }, []);
   
   useEffect(() => {
     const checkLimit = async () => {
       if (user && user.role !== 'admin') {
         try {
           const res = await api.get('/internships/');
-          if (res.data.length >= 5) {
-            toast.error('Limit Exceeded: You are already mentoring the maximum of 5 students.');
+          const settingsRes = await api.get('/settings/');
+          const maxFaculty = parseInt(settingsRes.data.max_students_per_faculty || '5');
+          if (res.data.length >= maxFaculty) {
+            toast.error(`Limit Exceeded: You are already mentoring the maximum of ${maxFaculty} students.`);
             router.push('/');
           }
         } catch (err) {
@@ -37,7 +60,7 @@ export default function AddInternship() {
     department: '',
     internship_title: '',
     internship_domain: '',
-    internship_mode: 'Hybrid',
+    internship_mode: 'Offline',
     start_date: '',
     end_date: '',
     remarks: ''
@@ -50,10 +73,7 @@ export default function AddInternship() {
     const fetchFacultiesList = async () => {
       if (user?.role === 'admin') {
         try {
-          const token = localStorage.getItem('token');
-          const res = await api.get('/auth/faculties', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await api.get('/auth/faculties');
           setFaculties(res.data);
           if (res.data.length > 0) {
             setSelectedFacultyId(res.data[0].faculty_id);
@@ -87,12 +107,26 @@ export default function AddInternship() {
       return;
     }
     
+    const pStart = new Date(settings.project_start_date);
+    const pEnd = new Date(settings.project_end_date);
     const startDate = new Date(formData.start_date);
     const endDate = new Date(formData.end_date);
+
+    if (startDate < pStart) {
+      toast.error(`Internship start date must be on or after the academic year start date of ${settings.project_start_date}.`);
+      return;
+    }
+
+    if (endDate > pEnd) {
+      toast.error(`Internship end date must be on or before the academic year end date of ${settings.project_end_date}.`);
+      return;
+    }
+
     const diffTime = Math.abs(endDate - startDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 28 || diffDays > 56) {
-      toast.error('Internship duration must be exactly between 4 weeks and 8 weeks.');
+    const minDays = parseInt(settings.min_duration_days);
+    if (diffDays < minDays) {
+      toast.error(`Internship duration must be at least ${minDays} days.`);
       return;
     }
 
@@ -122,6 +156,9 @@ export default function AddInternship() {
         faculty_id: user?.role === 'admin' ? selectedFacultyId : undefined
       });
 
+      queryClient.invalidateQueries({ queryKey: ['layoutInternships'] });
+      queryClient.invalidateQueries({ queryKey: ['internships'] });
+
       toast.success('Intern and internship registered successfully!', { id: toastId });
       router.push('/internships');
     } catch (err) {
@@ -150,6 +187,7 @@ export default function AddInternship() {
           faculties={faculties} 
           selectedFacultyId={selectedFacultyId} 
           setSelectedFacultyId={setSelectedFacultyId} 
+          settings={settings}
         />
 
         {/* Form Controls */}

@@ -1,92 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-import secrets
 import os
-import time
 
 from app.db.database import get_db
 from app.models.faculty import Faculty
-from app.schemas.faculty import FacultyCreate, FacultyResponse, OTPRequest, OTPVerifyRequest
-from app.schemas.token import Token
-from app.core.security import create_access_token
-from pydantic import BaseModel
-
-class AdminLoginRequest(BaseModel):
-    username: str
-    password: str
 
 router = APIRouter()
-
-OTP_STORE = {}
-
-@router.post("/register", response_model=FacultyResponse)
-async def register(faculty: FacultyCreate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Faculty).filter(Faculty.email == faculty.email))
-    db_faculty = result.scalars().first()
-    if db_faculty:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    new_faculty = Faculty(
-        faculty_name=faculty.faculty_name,
-        email=faculty.email,
-        role=faculty.role
-    )
-    db.add(new_faculty)
-    await db.commit()
-    await db.refresh(new_faculty)
-    return new_faculty
-
-@router.post("/send-otp")
-async def send_otp(request: OTPRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Faculty).filter(Faculty.email == request.email))
-    faculty = result.scalars().first()
-    if not faculty:
-        raise HTTPException(status_code=404, detail="Email not found in employee records")
-    
-    # Use cryptographically secure random number generator
-    otp = f"{secrets.randbelow(900000) + 100000}"
-    OTP_STORE[request.email] = {"otp": otp, "expires": time.time() + 300}  # 5 min expiry
-    
-    # In production, send OTP via email/SMS. For dev, log to console.
-    print(f"[DEV OTP] {request.email}: {otp}")
-    return {"message": "OTP sent successfully", "otp": otp}
-
-@router.post("/verify-otp", response_model=Token)
-async def verify_otp(request: OTPVerifyRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Faculty).filter(Faculty.email == request.email))
-    faculty = result.scalars().first()
-    if not faculty:
-        raise HTTPException(status_code=404, detail="Email not found")
-        
-    stored = OTP_STORE.get(request.email)
-    if not stored:
-        raise HTTPException(status_code=401, detail="No OTP was requested for this email. Please request a new one.")
-    if time.time() > stored["expires"]:
-        del OTP_STORE[request.email]
-        raise HTTPException(status_code=401, detail="OTP has expired. Please request a new one.")
-    if stored["otp"] != request.otp:
-        raise HTTPException(status_code=401, detail="Invalid OTP. Please check and try again.")
-        
-    # Clean up OTP after successful use
-    del OTP_STORE[request.email]
-    
-    access_token = create_access_token(data={"sub": faculty.email, "role": faculty.role})
-    return {"access_token": access_token, "token_type": "bearer", "faculty_name": faculty.faculty_name, "role": faculty.role}
-
-@router.post("/admin/login")
-async def admin_login(request: AdminLoginRequest):
-    admin_user = os.getenv("ADMIN_USERNAME", "admin")
-    admin_pass = os.getenv("ADMIN_PASSWORD")
-    if not admin_pass:
-        raise HTTPException(status_code=500, detail="Admin credentials not configured on server.")
-    if secrets.compare_digest(request.username, admin_user) and secrets.compare_digest(request.password, admin_pass):
-        access_token = create_access_token(data={"sub": "admin@nitt.edu", "role": "admin"})
-        return {"access_token": access_token, "token_type": "bearer", "faculty_name": "Administrator"}
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid administrator credentials"
-    )
 
 from app.api.deps import get_current_faculty
 from app.schemas.faculty import FacultyResponse
@@ -133,21 +53,33 @@ async def upload_signature(
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Invalid file type. Must be an image (PNG, JPG, etc.).")
         
+    from app.utils.filenames import get_faculty_prefix
+    faculty_prefix = get_faculty_prefix(current_user.email)
+    
     ext = (file.filename or "signature.png").split(".")[-1]
-    filename = f"{uuid.uuid4()}.{ext}"
+    filename = f"{faculty_prefix}_sign.{ext}"
     os.makedirs("signatures", exist_ok=True)
     filepath = os.path.join("signatures", filename)
     
+    # Remove existing signature file to avoid clutter
+    if current_user.signature_path and os.path.exists(current_user.signature_path):
+        try:
+            os.remove(current_user.signature_path)
+        except Exception as e:
+            print(f"Failed to delete old signature file: {e}")
+            
     contents = await file.read()
     with open(filepath, "wb") as buffer:
         buffer.write(contents)
         
     # Update the current user's signature_path in the database
-    current_user.signature_path = filepath
+    # Standardize path slashes for cross-platform compatibility
+    normalized_path = filepath.replace("\\", "/")
+    current_user.signature_path = normalized_path
     db.add(current_user)
     await db.commit()
     
-    return {"message": "Signature uploaded successfully", "signature_path": filepath}
+    return {"message": "Signature uploaded successfully", "signature_path": normalized_path}
 
 from sqlalchemy import text
 from typing import Dict, Any

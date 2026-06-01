@@ -6,52 +6,48 @@ import api from '../services/api';
 export const AuthContext = createContext();
 
 export function Providers({ children }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+        staleTime: 60000,
+        retry: false,
+      },
+    },
+  }));
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const facultyName = localStorage.getItem('faculty_name');
-    const role = localStorage.getItem('role');
-    if (token && facultyName) {
-      setUser({ faculty_name: facultyName, role: role || 'faculty' });
+  const fetchUser = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      setUser(response.data);
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchUser();
   }, []);
 
-  const sendOtp = async (email) => {
-    const response = await api.post('/auth/send-otp', { email });
-    return response.data;
+  const login = () => {
+    const ssoUrl = process.env.NEXT_PUBLIC_SSO_URL || 'http://localhost:4000/auth/login';
+    const redirectUrl = encodeURIComponent(window.location.origin + '/auth/callback');
+    window.location.href = `${ssoUrl}?redirect=${redirectUrl}`;
   };
 
-  const verifyOtp = async (email, otp) => {
-    const response = await api.post('/auth/verify-otp', { email, otp });
-    const role = response.data.role || 'faculty';
-    localStorage.setItem('token', response.data.access_token);
-    localStorage.setItem('faculty_name', response.data.faculty_name);
-    localStorage.setItem('role', role);
-    setUser({ faculty_name: response.data.faculty_name, role });
-  };
-
-  const adminLogin = async (username, password) => {
-    const response = await api.post('/auth/admin/login', { username, password });
-    localStorage.setItem('token', response.data.access_token);
-    localStorage.setItem('faculty_name', response.data.faculty_name);
-    localStorage.setItem('role', 'admin');
-    setUser({ faculty_name: response.data.faculty_name, role: 'admin' });
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('faculty_name');
-    localStorage.removeItem('role');
+  const logout = async () => {
     setUser(null);
     queryClient.clear();
+    const ssoLogoutUrl = process.env.NEXT_PUBLIC_SSO_LOGOUT_URL || 'http://localhost:4000/auth/logout';
+    window.location.href = `${ssoLogoutUrl}?redirect=${encodeURIComponent(window.location.origin)}`;
   };
 
   return (
-    <AuthContext.Provider value={{ user, sendOtp, verifyOtp, adminLogin, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, refetchUser: fetchUser }}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

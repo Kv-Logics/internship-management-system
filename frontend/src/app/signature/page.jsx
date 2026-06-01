@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
 
 const getCroppedImg = async (imageSrc, pixelCrop) => {
   const image = new Image();
@@ -26,6 +26,7 @@ const getCroppedImg = async (imageSrc, pixelCrop) => {
 };
 
 export default function SignaturePage() {
+  const [signatureTimestamp, setSignatureTimestamp] = useState(Date.now());
   const [imageSrc, setImageSrc] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -74,6 +75,7 @@ export default function SignaturePage() {
       toast.success(hasSignature ? 'Signature replaced successfully!' : 'Signature uploaded successfully!');
       setImageSrc(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      setSignatureTimestamp(Date.now());
       // Refresh /me so new signature shows immediately
       queryClient.invalidateQueries({ queryKey: ['me'] });
     } catch (err) {
@@ -119,7 +121,7 @@ export default function SignaturePage() {
           {/* Show the actual stored signature */}
           <div className="bg-gray-50 rounded-xl border border-dashed border-gray-200 flex items-center justify-center h-28 px-6">
             <img
-              src={`${signatureUrl}?t=${Date.now()}`}
+              src={`${signatureUrl}?t=${signatureTimestamp}`}
               alt="Your e-signature"
               className="max-h-24 max-w-full object-contain mix-blend-multiply"
               onError={(e) => { e.target.style.display = 'none'; }}

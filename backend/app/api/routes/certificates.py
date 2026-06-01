@@ -22,17 +22,13 @@ from app.services.certificate_service import generate_certificate_pdf
 
 router = APIRouter()
 
-@router.post("/generate/{internship_id}", response_model=CertificateResponse)
-async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+
+async def _core_generate_certificate(internship_id: UUID, db: AsyncSession):
     internship_result = await db.execute(select(Internship).filter(Internship.internship_id == internship_id))
     internship = internship_result.scalars().first()
     if not internship:
-        raise HTTPException(status_code=404, detail="Internship not found")
-    
-    # Allow admin to generate preview for ongoing internships, but block others.
-    if internship.end_date > datetime.utcnow().date() and getattr(current_user, "role", "faculty") != 'admin':
-        raise HTTPException(status_code=400, detail="Cannot generate certificate for an ongoing internship.")
-    
+        raise ValueError("Internship not found")
+        
     intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
     intern = intern_result.scalars().first()
     
@@ -40,8 +36,13 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
     faculty = faculty_result.scalars().first()
     mentor_name = faculty.faculty_name if faculty else "Assigned Faculty"
     
-    file_name = f"{internship_id}_certificate.pdf"
-    # Use forward slashes explicitly for web URL compatibility
+    from app.utils.filenames import get_faculty_prefix, get_internship_index, get_internship_year_suffix
+    
+    faculty_prefix = get_faculty_prefix(faculty.email) if faculty else "faculty"
+    year_val = get_internship_year_suffix(internship.start_date)
+    index_val = await get_internship_index(db, internship.faculty_id, internship.internship_id)
+    
+    file_name = f"{faculty_prefix}_interCert_{year_val}_{index_val:02d}.pdf"
     file_path = f"generated_certificates/{file_name}"
     
     cert_result = await db.execute(select(Certificate).filter(Certificate.internship_id == internship_id))
@@ -50,7 +51,6 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
     certificate_id_to_fetch = None
     needs_commit = False
     if not cert:
-        # Brand new certificate
         cert_number = f"NITT-{secrets.token_hex(6).upper()}"
         cert = Certificate(internship_id=internship_id, certificate_path=file_path, certificate_number=cert_number)
         db.add(cert)
@@ -59,12 +59,15 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
         needs_commit = True
     else:
         certificate_id_to_fetch = cert.certificate_id
-        # Upgrade legacy sequential IDs (e.g. IMS-2026-0001) to secure ones
         if not cert.certificate_number or cert.certificate_number.startswith("IMS-"):
             cert.certificate_number = f"NITT-{secrets.token_hex(6).upper()}"
             needs_commit = True
-        # Standardize the file path to generated_certificates/ if it points elsewhere (legacy seed data)
-        if not cert.certificate_path.startswith("generated_certificates/"):
+        if cert.certificate_path != file_path:
+            if cert.certificate_path and os.path.exists(cert.certificate_path):
+                try:
+                    os.remove(cert.certificate_path)
+                except Exception as e:
+                    print(f"Failed to delete old certificate file: {e}")
             cert.certificate_path = file_path
             needs_commit = True
 
@@ -72,6 +75,10 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
 
     if needs_commit:
         await db.commit()
+
+    dean_result = await db.execute(select(Faculty).filter(Faculty.role == "dean"))
+    dean = dean_result.scalars().first()
+    dean_signature_path = dean.signature_path if dean else None
 
     await asyncio.to_thread(
         generate_certificate_pdf,
@@ -84,11 +91,10 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
         output_path=file_path,
         certificate_number=final_cert_number,
         mentor_name=mentor_name,
-        faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None
+        faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None,
+        dean_signature_path=dean_signature_path
     )
     
-    # Re-fetch the certificate with all relationships eagerly loaded
-    # to satisfy the Pydantic response_model and avoid MissingGreenlet error.
     result = await db.execute(
         select(Certificate)
         .options(
@@ -101,11 +107,30 @@ async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(g
     )
     
     final_cert = result.scalars().first()
-
     if not final_cert:
-        raise HTTPException(status_code=500, detail="Failed to retrieve certificate after generation.")
+        raise ValueError("Failed to retrieve certificate after generation.")
 
     return final_cert
+
+@router.post("/generate/{internship_id}", response_model=CertificateResponse)
+async def generate_certificate(internship_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+    internship_result = await db.execute(select(Internship).filter(Internship.internship_id == internship_id))
+    internship = internship_result.scalars().first()
+    if not internship:
+        raise HTTPException(status_code=404, detail="Internship not found")
+    
+    # Enforce payment and duration completion (Admins can bypass duration, but payment must be verified for all)
+    if not getattr(internship, "is_paid", False):
+        raise HTTPException(status_code=400, detail="Cannot generate certificate: Payment is not verified.")
+        
+    if internship.end_date > datetime.utcnow().date() and getattr(current_user, "role", "faculty") != 'admin':
+        raise HTTPException(status_code=400, detail="Cannot generate certificate: Internship duration is not yet completed.")
+    
+    try:
+        final_cert = await _core_generate_certificate(internship_id, db)
+        return final_cert
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 def send_email_sync(sender_email, sender_password, msg):
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
         smtp.login(sender_email, sender_password)
@@ -117,6 +142,13 @@ async def email_certificate(internship_id: UUID, db: AsyncSession = Depends(get_
     internship = internship_result.scalars().first()
     if not internship:
         raise HTTPException(status_code=404, detail="Internship not found")
+        
+    if not getattr(internship, "is_paid", False):
+        raise HTTPException(status_code=400, detail="Cannot email certificate. Payment verification is pending.")
+        
+    from datetime import datetime
+    if internship.end_date > datetime.utcnow().date():
+        raise HTTPException(status_code=400, detail="Cannot email certificate. Internship duration is not yet completed.")
 
     cert_result = await db.execute(select(Certificate).filter(Certificate.internship_id == internship_id))
     certificate = cert_result.scalars().first()
@@ -155,12 +187,18 @@ async def email_certificate(internship_id: UUID, db: AsyncSession = Depends(get_
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
         
+    internship.is_emailed = True
+    db.add(internship)
+    await db.commit()
+        
     return {"message": "Email sent successfully"}
 
 from fastapi.responses import FileResponse
 
 @router.get("/verify/{certificate_number}")
-async def verify_certificate(certificate_number: str, db: AsyncSession = Depends(get_db)):
+async def verify_certificate(certificate_number: str, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+    if getattr(current_user, "role", "faculty") != "admin":
+        raise HTTPException(status_code=403, detail="Only administrators can verify certificates.")
     # Public endpoint to verify a certificate by its unique ID
     cert_result = await db.execute(select(Certificate).filter(Certificate.certificate_number == certificate_number))
     cert = cert_result.scalars().first()
@@ -207,14 +245,44 @@ async def view_certificate(internship_id: UUID, db: AsyncSession = Depends(get_d
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate record not found for this internship")
         
+    faculty_result = await db.execute(select(Faculty).filter(Faculty.faculty_id == internship.faculty_id))
+    faculty = faculty_result.scalars().first()
+    
+    # Compute the expected new file path format
+    from app.utils.filenames import get_faculty_prefix, get_internship_index, get_internship_year_suffix
+    faculty_prefix = get_faculty_prefix(faculty.email) if faculty else "faculty"
+    year_val = get_internship_year_suffix(internship.start_date)
+    index_val = await get_internship_index(db, internship.faculty_id, internship.internship_id)
+    expected_file_name = f"{faculty_prefix}_interCert_{year_val}_{index_val:02d}.pdf"
+    expected_file_path = f"generated_certificates/{expected_file_name}"
+    
+    needs_generation = False
+    
+    # Upgrade legacy path to new naming convention
+    if cert.certificate_path != expected_file_path:
+        if cert.certificate_path and os.path.exists(cert.certificate_path):
+            try:
+                os.remove(cert.certificate_path)
+            except Exception as e:
+                print(f"Failed to delete old certificate file: {e}")
+        cert.certificate_path = expected_file_path
+        await db.commit()
+        needs_generation = True
+        
     if not os.path.exists(cert.certificate_path):
-        # Engine: File is missing from disk (e.g. seeded data). Generate it on the fly!
+        needs_generation = True
+        
+    if needs_generation:
+        # File is missing or path was upgraded. Generate it on the fly!
         intern_result = await db.execute(select(Intern).filter(Intern.intern_id == internship.intern_id))
         intern = intern_result.scalars().first()
         
-        faculty_result = await db.execute(select(Faculty).filter(Faculty.faculty_id == internship.faculty_id))
-        faculty = faculty_result.scalars().first()
         mentor_name = faculty.faculty_name if faculty else "Assigned Faculty"
+        
+        # Query Dean signature
+        dean_res = await db.execute(select(Faculty).filter(Faculty.role == "dean"))
+        dean = dean_res.scalars().first()
+        dean_signature_path = dean.signature_path if dean else None
         
         await asyncio.to_thread(
             generate_certificate_pdf,
@@ -227,7 +295,8 @@ async def view_certificate(internship_id: UUID, db: AsyncSession = Depends(get_d
             output_path=cert.certificate_path,
             certificate_number=cert.certificate_number,
             mentor_name=mentor_name,
-            faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None
+            faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None,
+            dean_signature_path=dean_signature_path
         )
         
     # Fetch the intern to use their name for the downloaded file
@@ -262,6 +331,11 @@ async def preview_certificate(internship_id: UUID, db: AsyncSession = Depends(ge
     os.makedirs(temp_dir, exist_ok=True)
     preview_file = f"{temp_dir}/{internship_id}_preview.pdf"
     
+    # Query Dean signature
+    dean_res = await db.execute(select(Faculty).filter(Faculty.role == "dean"))
+    dean = dean_res.scalars().first()
+    dean_signature_path = dean.signature_path if dean else None
+
     await asyncio.to_thread(
         generate_certificate_pdf,
         intern_name=intern.intern_name,
@@ -272,7 +346,9 @@ async def preview_certificate(internship_id: UUID, db: AsyncSession = Depends(ge
         end_date=internship.end_date,
         output_path=preview_file,
         certificate_number="NITT-PREVIEW-TEMP",
-        mentor_name=mentor_name
+        mentor_name=mentor_name,
+        faculty_signature_path=faculty.signature_path if hasattr(faculty, 'signature_path') else None,
+        dean_signature_path=dean_signature_path
     )
     
     return FileResponse(
@@ -280,4 +356,40 @@ async def preview_certificate(internship_id: UUID, db: AsyncSession = Depends(ge
         media_type="application/pdf", 
         filename=f"Preview_{intern.intern_name.replace(' ', '_')}_Certificate.pdf",
         content_disposition_type="inline"
+    )
+import io
+import zipfile
+from fastapi.responses import StreamingResponse
+
+@router.get("/bulk-download")
+async def bulk_download_certificates(db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+    if getattr(current_user, "role", "faculty") != "admin":
+        raise HTTPException(status_code=403, detail="Only administrators can bulk download certificates.")
+        
+    result = await db.execute(
+        select(Certificate)
+        .join(Internship)
+        .filter(Internship.is_paid == True, Internship.end_date <= datetime.utcnow().date())
+    )
+    certificates = result.scalars().all()
+    
+    if not certificates:
+        raise HTTPException(status_code=404, detail="No eligible certificates found for download.")
+        
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for cert in certificates:
+            if cert.certificate_path and os.path.exists(cert.certificate_path):
+                # Ensure a clean filename inside the zip
+                filename = os.path.basename(cert.certificate_path)
+                zip_file.write(cert.certificate_path, arcname=filename)
+                
+    zip_buffer.seek(0)
+    
+    from datetime import datetime as dt
+    date_str = dt.now().strftime("%Y-%m-%d")
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename=Bulk_Certificates_{date_str}.zip"}
     )
