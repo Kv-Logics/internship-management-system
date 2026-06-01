@@ -22,18 +22,9 @@ async def send_email_with_settings(db: AsyncSession, msg: EmailMessage):
     smtp_password = settings.get("smtp_password")
     smtp_secure = settings.get("smtp_secure", "ssl") # "ssl", "tls", or "none"
     
-    # Fallback to env variables if SMTP Host/Username is not set
-    if not smtp_host or not smtp_username:
-        logger.info("SMTP configuration not fully set in database. Falling back to env variables.")
-        sender_email = os.getenv("SENDER_EMAIL", "keerthivasan.220722@gmail.com")
-        sender_password = os.getenv("SENDER_PASSWORD")
-        if not sender_password or sender_password == "your_app_password_here":
-            raise ValueError("SMTP host/username is not configured in database and SENDER_PASSWORD environment variable is missing.")
-        smtp_host = "smtp.gmail.com"
-        smtp_port = "465"
-        smtp_username = sender_email
-        smtp_password = sender_password
-        smtp_secure = "ssl"
+    # Ensure SMTP settings are configured in database
+    if not smtp_host or not smtp_username or not smtp_password:
+        raise ValueError("SMTP mail credentials are not configured. Please log in as an administrator and set them in the Admin Settings portal first.")
         
     port = int(smtp_port) if smtp_port and smtp_port.isdigit() else 465
     

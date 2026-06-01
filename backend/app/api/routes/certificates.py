@@ -136,6 +136,9 @@ from app.utils.email import send_email_with_settings
 
 @router.post("/email/{internship_id}")
 async def email_certificate(internship_id: UUID, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+    if getattr(current_user, "role", "faculty") != "admin":
+        raise HTTPException(status_code=403, detail="Access Denied: Only administrators can dispatch certificate emails.")
+        
     internship_result = await db.execute(select(Internship).filter(Internship.internship_id == internship_id))
     internship = internship_result.scalars().first()
     if not internship:
