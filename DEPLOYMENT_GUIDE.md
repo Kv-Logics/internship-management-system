@@ -126,7 +126,11 @@ DATABASE_URL=postgresql+asyncpg://ims_admin:your_secure_db_password@your_db_serv
 ---
 
 ## 4. Decoupled SSO & Application Configuration (.env)
-Create the `.env` file in the root directory. Decouple your system configuration using these variables:
+A pre-configured production environment file with secure, randomly generated passwords and keys has been prepared at [production.env](file:///C:/Users/keert/NIT%20Projects/internship-management-system/deployment_env/production.env). 
+
+The DevOps team can copy or rename this file to `.env` at the root of the project, configure the server URLs in Section 2, and deploy immediately.
+
+Alternatively, you can manually create a `.env` file in the root directory using these variables:
 
 ```env
 # Database Settings
