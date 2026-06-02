@@ -1,22 +1,73 @@
 'use client';
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthContext } from '../providers';
-import { ArrowRight, ShieldCheck, Lock } from 'lucide-react';
+import api from '../../services/api';
+import { ArrowRight, ShieldCheck, Lock, Mail, KeyRound, ChevronLeft } from 'lucide-react';
 import nitlogo from '../../assets/nitlogo.png';
 import NitImgBg from '../../assets/NitImgBg.jpeg';
 
 export default function Login() {
-  const { user, login, loading } = useContext(AuthContext);
+  const { user, login, loading: authLoading } = useContext(AuthContext);
   const router = useRouter();
   
+  const [step, setStep] = useState('email');
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !authLoading) {
       router.push('/');
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
-  if (loading) {
+  const handleRequestOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    const normalizedEmail = email.trim().lower();
+    if (!normalizedEmail.endsWith('@nitt.edu')) {
+      setError('Only @nitt.edu email addresses are permitted.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/request-otp', { email: normalizedEmail });
+      if (response.data.success) {
+        setMessage('Verification code sent successfully to your NITT email.');
+        setStep('otp');
+      } else {
+        setError(response.data.message || 'Failed to send OTP.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to send OTP. Please check your email or contact the administrator.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (otp.trim().length !== 6) {
+      setError('OTP must be a 6-digit number.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await login(email.trim().lower(), otp.trim());
+      router.push('/');
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Invalid or expired OTP code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (authLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-indigo-400 font-semibold space-y-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
@@ -62,7 +113,7 @@ export default function Login() {
           <div className="pt-4 border-t border-slate-800 flex items-center space-x-8 text-xs font-semibold text-slate-400">
             <div className="flex items-center space-x-2">
               <span className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
-              <span>Central SSO Synced</span>
+              <span>OTP Authentication Securing Portal</span>
             </div>
             <div className="flex items-center space-x-2">
               <ShieldCheck size={14} className="text-indigo-400" />
@@ -93,23 +144,105 @@ export default function Login() {
                 <img src={nitlogo.src} alt="NITT Logo" className="h-14 w-14 object-contain" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold tracking-tight text-white">Welcome back</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-white">Sign In</h3>
                 <p className="text-sm text-slate-400 max-w-xs mx-auto">
-                  Access your academic portal using the NIT Tiruchirappalli centralized Single Sign-On (SSO).
+                  Access the IMS portal using your institute email and a secure email verification code.
                 </p>
               </div>
             </div>
 
-            {/* Login button */}
-            <div className="pt-2">
-              <button
-                onClick={login}
-                className="group w-full py-4 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 rounded-2xl text-base font-bold text-white shadow-xl hover:shadow-indigo-500/10 transition-all flex items-center justify-center space-x-3 cursor-pointer"
-              >
-                <span>Sign In with Central SSO</span>
-                <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
+            {error && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3.5 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+
+            {message && step === 'otp' && (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3.5 text-sm text-emerald-300">
+                {message}
+              </div>
+            )}
+
+            {step === 'email' ? (
+              <form onSubmit={handleRequestOtp} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-300">
+                    Institute Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-3.5 h-5 w-5 text-slate-500" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="username@nitt.edu"
+                      required
+                      className="w-full rounded-2xl border border-slate-800 bg-slate-900/50 pl-12 pr-4 py-3.5 text-white outline-none focus:border-indigo-500 focus:bg-slate-950 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="group w-full py-4 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl text-base font-bold text-white shadow-xl hover:shadow-indigo-500/10 transition-all flex items-center justify-center space-x-3 cursor-pointer"
+                >
+                  <span>{loading ? 'Sending OTP...' : 'Send Verification OTP'}</span>
+                  {!loading && <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform" />}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleLoginSubmit} className="space-y-5">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Code sent to
+                  </p>
+                  <p className="truncate font-semibold text-indigo-300">
+                    {email}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-300">
+                    Enter Verification Code (OTP)
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-4 top-4.5 h-5 w-5 text-slate-500" />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      required
+                      className="w-full rounded-2xl border border-slate-800 bg-slate-900/50 pl-12 py-4 text-left text-2xl font-bold tracking-[0.25em] text-white outline-none focus:border-indigo-500 focus:bg-slate-950 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-700 placeholder:tracking-normal"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || otp.length < 6}
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl text-base font-bold text-white shadow-xl hover:shadow-indigo-500/10 transition-all flex items-center justify-center cursor-pointer"
+                >
+                  <span>{loading ? 'Verifying OTP...' : 'Sign In'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('email');
+                    setOtp('');
+                    setError('');
+                    setMessage('');
+                  }}
+                  className="w-full py-2 text-sm font-semibold text-slate-500 hover:text-slate-300 transition-colors flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  <ChevronLeft size={16} />
+                  <span>Use a different email</span>
+                </button>
+              </form>
+            )}
           </div>
 
           {/* Footer information */}

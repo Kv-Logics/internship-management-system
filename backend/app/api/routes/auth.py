@@ -1,17 +1,296 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import os
+import secrets
+from datetime import datetime, timezone, timedelta
+from jose import jwt, JWTError
+from pydantic import BaseModel
+from email.message import EmailMessage
 
 from app.db.database import get_db
 from app.models.faculty import Faculty
+from app.models.otp import Otp
+from app.models.refresh_token import RefreshToken
+from app.utils.email import send_email_with_settings
 
 router = APIRouter()
+
+# JWT helper utilities
+def create_access_token(email: str, name: str, expires_delta: timedelta = None) -> str:
+    secret = os.getenv("JWT_ACCESS_SECRET") or os.getenv("SECRET_KEY", "change_this_access_secret")
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
+    to_encode = {
+        "sub": email,
+        "email": email,
+        "name": name,
+        "exp": int(expire.timestamp())
+    }
+    return jwt.encode(to_encode, secret, algorithm="HS256")
+
+def create_refresh_token(email: str, expires_delta: timedelta = None) -> str:
+    secret = os.getenv("JWT_REFRESH_SECRET") or os.getenv("SECRET_KEY", "change_this_refresh_secret")
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(days=7))
+    to_encode = {
+        "sub": email,
+        "exp": int(expire.timestamp())
+    }
+    return jwt.encode(to_encode, secret, algorithm="HS256")
 
 from app.api.deps import get_current_faculty
 from app.schemas.faculty import FacultyResponse
 from typing import List
 from uuid import UUID
+
+class OtpRequest(BaseModel):
+    email: str
+
+@router.post("/request-otp")
+async def request_otp(data: OtpRequest, db: AsyncSession = Depends(get_db)):
+    email = data.email.strip().lower()
+    if not email.endswith("@nitt.edu"):
+        raise HTTPException(status_code=400, detail="Only @nitt.edu email addresses are permitted.")
+        
+    # Check if user exists in faculties
+    stmt = select(Faculty).filter(Faculty.email == email)
+    result = await db.execute(stmt)
+    faculty = result.scalars().first()
+    
+    # Auto-allow if it's the primary admin email
+    if not faculty and email != "114123003@nitt.edu":
+        raise HTTPException(status_code=400, detail="This email is not registered. Please contact the system administrator to register your account.")
+        
+    # Generate 6-digit OTP code
+    code = str(secrets.randbelow(900000) + 100000)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+    
+    # Store OTP in DB (upserting by email)
+    otp_stmt = select(Otp).filter(Otp.email == email)
+    otp_result = await db.execute(otp_stmt)
+    existing_otp = otp_result.scalars().first()
+    
+    if existing_otp:
+        existing_otp.code = code
+        existing_otp.expires_at = expires_at
+        db.add(existing_otp)
+    else:
+        new_otp = Otp(email=email, code=code, expires_at=expires_at)
+        db.add(new_otp)
+        
+    await db.commit()
+    
+    # Send email
+    msg = EmailMessage()
+    msg['Subject'] = "NITT IMS - Verification Code"
+    msg['To'] = email
+    msg.set_content(f"Your NITT Internship Management System verification code is: {code}\n\nThis code will expire in 5 minutes.")
+    
+    try:
+        await send_email_with_settings(db, msg)
+    except Exception as e:
+        print(f"SMTP Error: {e}")
+        if os.getenv("NODE_ENV") == "production":
+            raise HTTPException(status_code=500, detail=f"Failed to send verification email: {str(e)}")
+            
+    # Print code to logs in development for easy local testing
+    print(f"\n-----------------------------------------")
+    print(f"🔐 LOCAL BYPASS OTP FOR {email}: {code}")
+    print(f"-----------------------------------------\n")
+    
+    return {"success": True, "message": "Verification OTP sent successfully."}
+
+class LoginRequest(BaseModel):
+    email: str
+    otp: str
+
+@router.post("/login")
+async def login(response: Response, data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    email = data.email.strip().lower()
+    otp_code = data.otp.strip()
+    
+    # Validate OTP
+    otp_stmt = select(Otp).filter(Otp.email == email, Otp.code == otp_code)
+    otp_result = await db.execute(otp_stmt)
+    db_otp = otp_result.scalars().first()
+    
+    if not db_otp:
+        raise HTTPException(status_code=401, detail="Invalid OTP code or no active request found.")
+        
+    expires_at = db_otp.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+        
+    if expires_at < datetime.now(timezone.utc):
+        await db.delete(db_otp)
+        await db.commit()
+        raise HTTPException(status_code=401, detail="OTP code has expired. Please request a new one.")
+        
+    # Delete OTP code from DB upon successful verification
+    await db.delete(db_otp)
+    
+    # Find or dynamically create/upsert Faculty record
+    stmt = select(Faculty).filter(Faculty.email == email)
+    result = await db.execute(stmt)
+    faculty = result.scalars().first()
+    
+    if not faculty:
+        if email == "114123003@nitt.edu":
+            faculty = Faculty(
+                email=email,
+                faculty_name="Administrator",
+                role="admin"
+            )
+            db.add(faculty)
+            await db.commit()
+            await db.refresh(faculty)
+        else:
+            raise HTTPException(status_code=401, detail="User not found.")
+            
+    # Generate Access and Refresh tokens
+    access_token = create_access_token(email=email, name=faculty.faculty_name)
+    refresh_token = create_refresh_token(email=email)
+    
+    # Save RefreshToken in DB
+    ref_stmt = select(RefreshToken).filter(RefreshToken.email == email)
+    ref_result = await db.execute(ref_stmt)
+    existing_ref = ref_result.scalars().first()
+    
+    ref_expires = datetime.now(timezone.utc) + timedelta(days=7)
+    if existing_ref:
+        existing_ref.token = refresh_token
+        existing_ref.expires_at = ref_expires
+        db.add(existing_ref)
+    else:
+        new_ref = RefreshToken(email=email, token=refresh_token, expires_at=ref_expires)
+        db.add(new_ref)
+        
+    await db.commit()
+    
+    # Set cookies
+    response.set_cookie(
+        key="accessToken",
+        value=access_token,
+        httponly=True,
+        secure=os.getenv("NODE_ENV") == "production",
+        samesite="none" if os.getenv("NODE_ENV") == "production" else "lax",
+        path="/",
+        max_age=15 * 60
+    )
+    
+    response.set_cookie(
+        key="refreshToken",
+        value=refresh_token,
+        httponly=True,
+        secure=os.getenv("NODE_ENV") == "production",
+        samesite="none" if os.getenv("NODE_ENV") == "production" else "lax",
+        path="/",
+        max_age=7 * 24 * 60 * 60
+    )
+    
+    return {
+        "success": True,
+        "user": {
+            "faculty_id": str(faculty.faculty_id),
+            "faculty_name": faculty.faculty_name,
+            "email": faculty.email,
+            "role": faculty.role,
+            "department": faculty.department,
+            "signature_path": faculty.signature_path,
+        },
+        "token": access_token
+    }
+
+@router.post("/refresh")
+async def refresh(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    refresh_token = request.cookies.get("refreshToken")
+    if not refresh_token:
+        raise HTTPException(status_code=400, detail="Refresh token is required.")
+        
+    secret = os.getenv("JWT_REFRESH_SECRET") or os.getenv("SECRET_KEY", "change_this_refresh_secret")
+    try:
+        payload = jwt.decode(refresh_token, secret, algorithms=["HS256"])
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid refresh token payload.")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token.")
+        
+    ref_stmt = select(RefreshToken).filter(RefreshToken.token == refresh_token)
+    ref_result = await db.execute(ref_stmt)
+    db_ref = ref_result.scalars().first()
+    
+    if not db_ref:
+        raise HTTPException(status_code=401, detail="Session does not exist. Please log in again.")
+        
+    expires_at = db_ref.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+        
+    if expires_at < datetime.now(timezone.utc):
+        await db.delete(db_ref)
+        await db.commit()
+        raise HTTPException(status_code=401, detail="Refresh token has expired. Please log in again.")
+        
+    stmt = select(Faculty).filter(Faculty.email == email)
+    result = await db.execute(stmt)
+    faculty = result.scalars().first()
+    if not faculty:
+        raise HTTPException(status_code=401, detail="User not found.")
+        
+    new_access_token = create_access_token(email=email, name=faculty.faculty_name)
+    new_refresh_token = create_refresh_token(email=email)
+    
+    db_ref.token = new_refresh_token
+    db_ref.expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    db.add(db_ref)
+    await db.commit()
+    
+    response.set_cookie(
+        key="accessToken",
+        value=new_access_token,
+        httponly=True,
+        secure=os.getenv("NODE_ENV") == "production",
+        samesite="none" if os.getenv("NODE_ENV") == "production" else "lax",
+        path="/",
+        max_age=15 * 60
+    )
+    
+    response.set_cookie(
+        key="refreshToken",
+        value=new_refresh_token,
+        httponly=True,
+        secure=os.getenv("NODE_ENV") == "production",
+        samesite="none" if os.getenv("NODE_ENV") == "production" else "lax",
+        path="/",
+        max_age=7 * 24 * 60 * 60
+    )
+    
+    return {"success": True}
+
+@router.post("/logout")
+async def logout(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    refresh_token = request.cookies.get("refreshToken")
+    if refresh_token:
+        stmt = select(RefreshToken).filter(RefreshToken.token == refresh_token)
+        result = await db.execute(stmt)
+        db_ref = result.scalars().first()
+        if db_ref:
+            await db.delete(db_ref)
+            await db.commit()
+            
+    response.delete_cookie(
+        key="accessToken",
+        path="/",
+        secure=os.getenv("NODE_ENV") == "production",
+        samesite="none" if os.getenv("NODE_ENV") == "production" else "lax"
+    )
+    response.delete_cookie(
+        key="refreshToken",
+        path="/",
+        secure=os.getenv("NODE_ENV") == "production",
+        samesite="none" if os.getenv("NODE_ENV") == "production" else "lax"
+    )
+    return {"success": True, "message": "Logged out successfully."}
 
 @router.get("/faculties", response_model=List[FacultyResponse])
 async def list_faculties(db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):

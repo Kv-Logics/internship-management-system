@@ -38,23 +38,26 @@ export function Providers({ children }) {
     }
   }, []);
 
-  const login = () => {
-    const ssoUrl = process.env.NEXT_PUBLIC_SSO_URL;
-    if (!ssoUrl) {
-      console.error("SSO URL is not configured in environment variables (NEXT_PUBLIC_SSO_URL).");
-      // Fallback display message - using alert since toast is not imported in providers.jsx
-      alert("System SSO Login is currently misconfigured. Please contact system administrator.");
-      return;
+  const login = async (email, otp) => {
+    const response = await api.post('/auth/login', { email, otp });
+    if (response.data.success) {
+      setUser(response.data.user);
+      localStorage.setItem('token', response.data.token);
+      return response.data;
+    } else {
+      throw new Error(response.data.message || 'Login failed');
     }
-    const redirectUrl = encodeURIComponent(window.location.origin + '/auth/callback');
-    window.location.href = `${ssoUrl}?redirectTo=${redirectUrl}`;
   };
 
   const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.error('Failed to log out cleanly on backend:', err);
+    }
     setUser(null);
     queryClient.clear();
     localStorage.removeItem('token');
-    document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax;";
     window.location.href = '/login';
   };
 

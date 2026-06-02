@@ -16,6 +16,8 @@ from app.models.internship import Internship
 from app.models.document import Document
 from app.models.certificate import Certificate
 from app.models.system_setting import SystemSetting
+from app.models.otp import Otp
+from app.models.refresh_token import RefreshToken
 
 from app.api.routes import auth, interns, internships, documents, certificates, settings
 
