@@ -1,232 +1,84 @@
-# Internship Management System (IMS) Deployment & Database Setup Guide
+# NITT Internship Management System: Deployment Guide (Red Hat/RHEL)
 
-This document provides a detailed guide to deploying the Internship Management System (IMS) on a production campus server. It covers two configuration options: **Option A (Containerized Database)** and **Option B (Standalone/Manual Database Server)**.
+This is a basic, step-by-step guide for deploying the application to a Red Hat Enterprise Linux (RHEL) server for the `cdi.nitt.edu` domain.
 
----
+## Part 1: Local Preparation (Before Accessing the Server)
 
-## 1. Core Architecture Overview
-The system consists of three services:
-1. **Frontend (Next.js)**: Listens on Port `3000`.
-2. **Backend API (FastAPI)**: Listens on Port `8000`.
-3. **Database (PostgreSQL 15)**: Listens on Port `5432`.
+I have already created the necessary production files in your local workspace:
+1. `docker-compose.prod.yml`: The production configuration that manages the database, backend, frontend, and Nginx.
+2. `nginx/nginx.conf`: The web server configuration set up to route traffic for `cdi.nitt.edu`.
+3. `.env.production.example`: The template for your environment variables.
 
----
+**Your Tasks Before Server Access:**
+1. You don't need to commit your actual secrets to Git! The file `.env.production.example` is safely pushed to Git as a template.
+2. In your local repository (do not commit this): you can copy `.env.production.example` to `.env.production` if you wish to test locally.
+3. *Note on System Email:* The `.env.production.example` now contains the base SMTP variables for the `noreplycdi` account. These are required so the system can send you the initial OTP to log in! You can override these later in the Admin UI for certificate generation.
 
-## 2. Option A: Containerized Database Setup (Recommended)
-If you deploy using `docker-compose.yml`, PostgreSQL runs inside an isolated container. The user creation, password setup, database creation, and permissions are **handled automatically** during the container's first boot.
-
-### Step-by-Step Setup
-1. **Define database variables in `.env`:**
-   Open your environment file in the project root:
-   ```bash
-   nano .env
-   ```
-   Define your credentials:
-   ```env
-   # DB credentials to initialize
-   POSTGRES_USER=ims_admin
-   POSTGRES_PASSWORD=your_secure_db_password
-   POSTGRES_DB=internship_management
-
-   # Async connection string (Note that the host is "db" representing the compose service name)
-   DATABASE_URL=postgresql+asyncpg://ims_admin:your_secure_db_password@db:5432/internship_management
-   ```
-
-2. **Boot the Container:**
-   ```bash
-   sudo docker compose up -d --build
-   ```
-   
-3. **How Initial Database Setup Happens Under the Hood:**
-   - The PostgreSQL container checks if the `/var/lib/postgresql/data` volume is empty.
-   - If empty, it initializes the database cluster and automatically runs:
-     ```sql
-     CREATE ROLE ims_admin WITH LOGIN PASSWORD 'your_secure_db_password';
-     CREATE DATABASE internship_management OWNER ims_admin;
-     ```
-   - The FastAPI backend container automatically waits for the database socket to open, then initiates database migrations and tables/indexing setups via SQL Alchemy.
+Once your code is pushed to your Git repository, you can move on to the server setup.
 
 ---
 
-## 3. Option B: Standalone/Manual PostgreSQL Server Setup
-If your organization requires running a dedicated, native PostgreSQL database instance on a host operating system (e.g. a separate database node on Ubuntu/Debian), use these steps to set it up manually.
+## Part 2: Server Setup (On the Red Hat Server)
 
-### Step 1: Install PostgreSQL
-SSH into your database server and run:
+Once you log into your Red Hat server via SSH, follow these steps. (Assuming Docker and Docker Compose are already installed).
+
+### Step 1: Clone the Project
 ```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib -y
+# Clone your repository
+git clone <your-git-repo-url> internship-management-system
+cd internship-management-system
 ```
 
-Verify the database service is running:
+### Step 2: Create the Secure .env.production File
+**CRITICAL**: You must do this *before* running Docker.
 ```bash
-sudo systemctl status postgresql
+# Create the real production environment file from the template
+cp .env.production.example .env.production
+
+# Edit the environment file to put your secure passwords in
+nano .env.production
+```
+*(In nano, fill in your `POSTGRES_PASSWORD`, `JWT_SECRET`, and the `SMTP_PASSWORD` for the `noreplycdi` webmail account. Save and exit using Ctrl+O, Enter, Ctrl+X)*
+
+### Step 3: Start the Application
+Now that your `.env.production` file is configured, you can start the system. The `docker-compose.prod.yml` file is configured to automatically read your `.env.production` file and build both the frontend and backend Dockerfiles.
+
+```bash
+# Build and run the production environment in the background
+sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-### Step 2: Create Database User & Password
-1. Enter the default PostgreSQL administrative shell:
-   ```bash
-   sudo -i -u postgres psql
-   ```
-2. Create the dedicated user for the IMS application (replace `your_secure_db_password` with a strong password):
-   ```sql
-   CREATE USER ims_admin WITH PASSWORD 'your_secure_db_password';
-   ```
-3. Create the database instance and assign ownership to the user:
-   ```sql
-   CREATE DATABASE internship_management OWNER ims_admin;
-   ```
-4. Grant privileges:
-   ```sql
-   GRANT ALL PRIVILEGES ON DATABASE internship_management TO ims_admin;
-   ```
-5. Exit the shell:
-   ```sql
-   \q
-   ```
-
-### Step 3: Configure Network Access for PostgreSQL
-By default, PostgreSQL only accepts connections originating from `localhost` (127.0.0.1). If your backend API container is running on a different server/host, you must allow remote connections.
-
-1. **Configure listen address:**
-   Open `postgresql.conf` (adjust path if using a version other than 15):
-   ```bash
-   sudo nano /etc/postgresql/15/main/postgresql.conf
-   ```
-   Locate `listen_addresses` and configure it to listen on all network interfaces:
-   ```ini
-   listen_addresses = '*'
-   ```
-
-2. **Configure client authentication rules (`pg_hba.conf`):**
-   Open `pg_hba.conf`:
-   ```bash
-   sudo nano /etc/postgresql/15/main/pg_hba.conf
-   ```
-   Add a line at the end to allow the backend server to authenticate. Specify the server's IP address or the local subnet range (e.g. `192.168.1.0/24`):
-   ```ini
-   # TYPE  DATABASE                USER        ADDRESS            METHOD
-   host    internship_management   ims_admin   your_backend_ip/32  scram-sha-256
-   ```
-   *(For testing behind a firewall only, you can allow all hosts via `0.0.0.0/0`).*
-
-3. **Apply changes:**
-   Restart the database service:
-   ```bash
-   sudo systemctl restart postgresql
-   sudo systemctl enable postgresql
-   ```
-
-### Step 4: Configure the Application Connection
-In your `.env` file in the project root, configure the `DATABASE_URL` using your database server IP instead of `db`:
-```env
-DATABASE_URL=postgresql+asyncpg://ims_admin:your_secure_db_password@your_db_server_ip:5432/internship_management
+### Step 4: Verify the Deployment
+Run the following command to check if all containers (db, backend, frontend, nginx) are running smoothly:
+```bash
+sudo docker compose -f docker-compose.prod.yml ps
 ```
+You should now be able to access the application via HTTP (e.g., `http://cdi.nitt.edu`) in your browser!
 
 ---
 
-## 4. Decoupled SSO & Application Configuration (.env)
-A pre-configured production environment file with secure, randomly generated passwords and keys has been prepared at [production.env](file:///C:/Users/keert/NIT%20Projects/internship-management-system/deployment_env/production.env). 
+## Part 3: Enabling HTTPS / SSL (Let's Encrypt)
 
-The DevOps team can copy or rename this file to `.env` at the root of the project, configure the server URLs in Section 2, and deploy immediately.
+Once the HTTP site is working, you must enable HTTPS using Certbot.
 
-Alternatively, you can manually create a `.env` file in the root directory using these variables:
-
-```env
-# Database Settings
-POSTGRES_USER=ims_admin
-POSTGRES_PASSWORD=your_secure_db_password
-POSTGRES_DB=internship_management
-DATABASE_URL=postgresql+asyncpg://ims_admin:your_secure_db_password@db:5432/internship_management
-
-# Security Keys
-# Run `openssl rand -hex 32` to generate a strong key
-SECRET_KEY=your_generated_random_secret_key
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-
-# Central SSO Integration
-# Must match the JWT secrets defined in the deployed NITT SSO Authentication Server
-JWT_ACCESS_SECRET=your_jwt_access_secret_from_sso
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_from_sso
-
-# Network Origins (No trailing slashes)
-FRONTEND_URL=http://your-server-ip-or-domain:3000
-NEXT_PUBLIC_API_URL=http://your-server-ip-or-domain:8000/api
-NEXT_PUBLIC_SSO_URL=https://cdi.nitt.edu/login
+1. **Install Certbot** on Red Hat:
+```bash
+sudo dnf install epel-release -y
+sudo dnf install certbot -y
 ```
 
-### Guide to Constructing Network URLs:
+2. **Generate the Certificate:**
+```bash
+sudo certbot certonly --webroot -w /path/to/internship-management-system/certbot/www -d cdi.nitt.edu
+```
 
-* **`FRONTEND_URL`**: The final URL where users will go in their browser to access the website (e.g., `https://ims.nitt.edu`). The backend uses this to configure CORS policy and prevent unauthorized origins from calling the API.
-* **`NEXT_PUBLIC_API_URL`**: The public address of the backend FastAPI server (e.g., `https://ims.nitt.edu/api` or `https://ims-api.nitt.edu/api`). Since the frontend code runs directly in the client's browser, the browser needs this address to send HTTP requests (like generating certificates or loading student records).
-* **`NEXT_PUBLIC_SSO_URL`**: The address of the central Single Sign-On login portal. (Pre-configured to `https://cdi.nitt.edu/login`).
+3. **Enable SSL in Nginx:**
+Open the `nginx/nginx.conf` file on your server. At the bottom of the file, there is a block of code commented out with `#`. 
+Uncomment the HTTPS `server` block and the `return 301` redirect in the HTTP block. 
 
-#### 3 Common Deployment Scenarios for URLs:
-1. **Single Domain Routing (Recommended)**:
-   If Nginx routes all `/` traffic to the Next.js frontend and `/api` paths to the FastAPI backend:
-   ```env
-   FRONTEND_URL=https://ims.nitt.edu
-   NEXT_PUBLIC_API_URL=https://ims.nitt.edu/api
-   NEXT_PUBLIC_SSO_URL=https://cdi.nitt.edu/login
-   ```
-2. **Subdomain Routing**:
-   If separate domains are assigned to frontend and backend:
-   ```env
-   FRONTEND_URL=https://ims.nitt.edu
-   NEXT_PUBLIC_API_URL=https://ims-api.nitt.edu/api
-   NEXT_PUBLIC_SSO_URL=https://cdi.nitt.edu/login
-   ```
-3. **Bare IP Address Routing (No domains)**:
-   If deploying to a raw server IP address without DNS:
-   ```env
-   FRONTEND_URL=http://your-server-ip:3000
-   NEXT_PUBLIC_API_URL=http://your-server-ip:8000/api
-   NEXT_PUBLIC_SSO_URL=https://cdi.nitt.edu/login
-   ```
+4. **Restart Nginx:**
+```bash
+sudo docker compose -f docker-compose.prod.yml restart nginx
+```
 
----
-
-## 5. Schema Setup & Database Migrations
-On startup, the FastAPI server lifespan automatically executes SQLAlchemy schema reflection. You do not need to manually import SQL tables. 
-
-However, to manually execute migrations or test database seeding on a clean install:
-1. Log in to the backend container:
-   ```bash
-   sudo docker compose exec backend bash
-   ```
-2. Seed the initial faculty databases or test script manually:
-   ```bash
-   python migrate.py
-   python seed.py
-   ```
-
----
-
-## 6. Database Backups & Restore operations
-
-### How to Backup the database:
-* **Docker Setup:**
-  Run the command on the host machine to generate a gzipped SQL dump:
-  ```bash
-  sudo docker compose exec -t db pg_dump -U ims_admin -d internship_management | gzip > backup_$(date +%F).sql.gz
-  ```
-* **Standalone Host Setup:**
-  ```bash
-  pg_dump -U ims_admin -h your_db_server_ip -d internship_management | gzip > backup_$(date +%F).sql.gz
-  ```
-
-### How to Restore the database:
-1. Decompress the backup:
-   ```bash
-   gunzip backup_YYYY-MM-DD.sql.gz
-   ```
-2. Run the restore command:
-   * **Docker Setup:**
-     ```bash
-     cat backup_YYYY-MM-DD.sql | sudo docker compose exec -i db psql -U ims_admin -d internship_management
-     ```
-   * **Standalone Host Setup:**
-     ```bash
-     psql -U ims_admin -h your_db_server_ip -d internship_management -f backup_YYYY-MM-DD.sql
-     ```
+Your system is now fully deployed and secure!
