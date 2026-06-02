@@ -49,6 +49,9 @@ export default function StudentProfileSection({ formData, handleChange }) {
               required
             />
           </div>
+          <p className="mt-1.5 text-xs text-gray-500 font-medium">
+            * The final certificate will be emailed directly to this address upon completion.
+          </p>
         </div>
 
         <div>
