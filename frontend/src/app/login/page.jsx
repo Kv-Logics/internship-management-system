@@ -180,7 +180,7 @@ export default function Login() {
                   <div className="relative">
                     <Mail className="absolute left-4 top-3.5 h-5 w-5 text-slate-500" />
                     <input
-                      type="email"
+                      type="text"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="username@nitt.edu"
