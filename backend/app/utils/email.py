@@ -34,12 +34,12 @@ async def send_email_with_settings(db: AsyncSession, msg: EmailMessage):
         
     def _send():
         if smtp_secure == "ssl":
-            with smtplib.SMTP_SSL(smtp_host, port) as smtp:
+            with smtplib.SMTP_SSL(smtp_host, port, timeout=2.0) as smtp:
                 if smtp_username and smtp_password:
                     smtp.login(smtp_username, smtp_password)
                 smtp.send_message(msg)
         elif smtp_secure == "tls":
-            with smtplib.SMTP(smtp_host, port) as smtp:
+            with smtplib.SMTP(smtp_host, port, timeout=2.0) as smtp:
                 smtp.ehlo()
                 smtp.starttls()
                 smtp.ehlo()
@@ -47,7 +47,7 @@ async def send_email_with_settings(db: AsyncSession, msg: EmailMessage):
                     smtp.login(smtp_username, smtp_password)
                 smtp.send_message(msg)
         else: # none
-            with smtplib.SMTP(smtp_host, port) as smtp:
+            with smtplib.SMTP(smtp_host, port, timeout=2.0) as smtp:
                 if smtp_username and smtp_password:
                     smtp.login(smtp_username, smtp_password)
                 smtp.send_message(msg)

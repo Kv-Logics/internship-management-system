@@ -88,9 +88,7 @@ async def request_otp(data: OtpRequest, db: AsyncSession = Depends(get_db)):
     try:
         await send_email_with_settings(db, msg)
     except Exception as e:
-        print(f"SMTP Error: {e}")
-        if os.getenv("NODE_ENV") == "production":
-            raise HTTPException(status_code=500, detail=f"Failed to send verification email: {str(e)}")
+        print(f"SMTP Warning: Failed to dispatch verification email: {e}")
             
     # Print code to logs in development for easy local testing
     print(f"\n-----------------------------------------")
