@@ -16,15 +16,15 @@ async def send_email_with_settings(db: AsyncSession, msg: EmailMessage):
     result = await db.execute(stmt)
     settings = {s.key: s.value for s in result.scalars().all()}
     
-    smtp_host = settings.get("smtp_host")
-    smtp_port = settings.get("smtp_port")
-    smtp_username = settings.get("smtp_username")
-    smtp_password = settings.get("smtp_password")
-    smtp_secure = settings.get("smtp_secure", "ssl") # "ssl", "tls", or "none"
+    smtp_host = settings.get("smtp_host") or os.getenv("SMTP_HOST")
+    smtp_port = settings.get("smtp_port") or os.getenv("SMTP_PORT")
+    smtp_username = settings.get("smtp_username") or os.getenv("SMTP_USERNAME")
+    smtp_password = settings.get("smtp_password") or os.getenv("SMTP_PASSWORD")
+    smtp_secure = settings.get("smtp_secure") or os.getenv("SMTP_SECURE", "ssl") # "ssl", "tls", or "none"
     
-    # Ensure SMTP settings are configured in database
+    # Ensure SMTP settings are configured in database or environment
     if not smtp_host or not smtp_username or not smtp_password:
-        raise ValueError("SMTP mail credentials are not configured. Please log in as an administrator and set them in the Admin Settings portal first.")
+        raise ValueError("SMTP mail credentials are not configured in the database nor in the .env file. System cannot send emails.")
         
     port = int(smtp_port) if smtp_port and smtp_port.isdigit() else 465
     
