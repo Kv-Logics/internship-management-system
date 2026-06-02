@@ -94,7 +94,7 @@ async def request_otp(data: OtpRequest, db: AsyncSession = Depends(get_db)):
             
     # Print code to logs in development for easy local testing
     print(f"\n-----------------------------------------")
-    print(f"🔐 LOCAL BYPASS OTP FOR {email}: {code}")
+    print(f"[LOCAL BYPASS OTP] FOR {email}: {code}")
     print(f"-----------------------------------------\n")
     
     return {"success": True, "message": "Verification OTP sent successfully."}
