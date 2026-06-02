@@ -80,39 +80,6 @@ async def seed_data():
         await db.commit()
         print("Administrator (114123003@nitt.edu) and Dean (deanrc@nitt.edu) seeded successfully!")
         
-        # 4. Seed a dummy completed intern for jpeter@nitt.edu
-        from sqlalchemy import select
-        from datetime import datetime, timedelta
-        
-        jpeter_result = await db.execute(select(Faculty).filter(Faculty.email == "jpeter@nitt.edu"))
-        jpeter = jpeter_result.scalars().first()
-        
-        if jpeter:
-            dummy_intern = Intern(
-                intern_name="keerthi vasan",
-                email="01@nitt.edu", 
-                phone="9876543210",
-                college_name="NIT Trichy",
-                department="Computer Science"
-            )
-            db.add(dummy_intern)
-            await db.flush() 
-            
-            dummy_internship = Internship(
-                intern_id=dummy_intern.intern_id,
-                faculty_id=jpeter.faculty_id,
-                internship_title="Advanced Software Engineering",
-                internship_domain="Web Development",
-                internship_mode="Online",
-                start_date=datetime.utcnow().date() - timedelta(days=60),
-                end_date=datetime.utcnow().date() - timedelta(days=10),
-                is_paid=True, 
-                is_emailed=False
-            )
-            db.add(dummy_internship)
-            await db.commit()
-            print("Successfully seeded completed dummy intern 'keerthi vasan' for jpeter@nitt.edu")
-        
     print("Database seeding completed cleanly!")
 
 if __name__ == "__main__":
