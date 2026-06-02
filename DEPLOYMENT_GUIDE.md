@@ -153,8 +153,37 @@ JWT_REFRESH_SECRET=your_jwt_refresh_secret_from_sso
 # Network Origins (No trailing slashes)
 FRONTEND_URL=http://your-server-ip-or-domain:3000
 NEXT_PUBLIC_API_URL=http://your-server-ip-or-domain:8000/api
-NEXT_PUBLIC_SSO_URL=http://your-sso-server-ip-or-domain:5001/login
+NEXT_PUBLIC_SSO_URL=https://cdi.nitt.edu/login
 ```
+
+### Guide to Constructing Network URLs:
+
+* **`FRONTEND_URL`**: The final URL where users will go in their browser to access the website (e.g., `https://ims.nitt.edu`). The backend uses this to configure CORS policy and prevent unauthorized origins from calling the API.
+* **`NEXT_PUBLIC_API_URL`**: The public address of the backend FastAPI server (e.g., `https://ims.nitt.edu/api` or `https://ims-api.nitt.edu/api`). Since the frontend code runs directly in the client's browser, the browser needs this address to send HTTP requests (like generating certificates or loading student records).
+* **`NEXT_PUBLIC_SSO_URL`**: The address of the central Single Sign-On login portal. (Pre-configured to `https://cdi.nitt.edu/login`).
+
+#### 3 Common Deployment Scenarios for URLs:
+1. **Single Domain Routing (Recommended)**:
+   If Nginx routes all `/` traffic to the Next.js frontend and `/api` paths to the FastAPI backend:
+   ```env
+   FRONTEND_URL=https://ims.nitt.edu
+   NEXT_PUBLIC_API_URL=https://ims.nitt.edu/api
+   NEXT_PUBLIC_SSO_URL=https://cdi.nitt.edu/login
+   ```
+2. **Subdomain Routing**:
+   If separate domains are assigned to frontend and backend:
+   ```env
+   FRONTEND_URL=https://ims.nitt.edu
+   NEXT_PUBLIC_API_URL=https://ims-api.nitt.edu/api
+   NEXT_PUBLIC_SSO_URL=https://cdi.nitt.edu/login
+   ```
+3. **Bare IP Address Routing (No domains)**:
+   If deploying to a raw server IP address without DNS:
+   ```env
+   FRONTEND_URL=http://your-server-ip:3000
+   NEXT_PUBLIC_API_URL=http://your-server-ip:8000/api
+   NEXT_PUBLIC_SSO_URL=https://cdi.nitt.edu/login
+   ```
 
 ---
 
