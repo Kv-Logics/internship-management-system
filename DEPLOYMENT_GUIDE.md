@@ -62,7 +62,7 @@ Run the following command to check if all containers (db, backend, frontend, ngi
 ```bash
 sudo docker compose -f docker-compose.prod.yml ps
 ```
-You should now be able to access the application via HTTP (e.g., `http://cdi.nitt.edu`) in your browser!
+You should now be able to access the application via HTTP (e.g., `http://cdi.nitt.edu:6006`) in your browser! Note the custom port `6006` is used to avoid host port conflicts.
 
 ---
 
@@ -90,4 +90,4 @@ Uncomment the HTTPS `server` block and the `return 301` redirect in the HTTP blo
 sudo docker compose -f docker-compose.prod.yml restart nginx
 ```
 
-Your system is now fully deployed and secure!
+Your system is now fully deployed and secure! You can access it securely via `https://cdi.nitt.edu:6443`.
