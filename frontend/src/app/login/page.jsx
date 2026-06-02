@@ -28,11 +28,15 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setMessage('');
-    const normalizedEmail = email.trim().toLowerCase();
+    let normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.includes('@')) {
+      normalizedEmail = `${normalizedEmail}@nitt.edu`;
+    }
     if (!normalizedEmail.endsWith('@nitt.edu')) {
       setError('Only @nitt.edu email addresses are permitted.');
       return;
     }
+    setEmail(normalizedEmail);
     setLoading(true);
     try {
       const response = await api.post('/auth/request-otp', { email: normalizedEmail });
@@ -57,8 +61,12 @@ export default function Login() {
       return;
     }
     setLoading(true);
+    let normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.includes('@')) {
+      normalizedEmail = `${normalizedEmail}@nitt.edu`;
+    }
     try {
-      await login(email.trim().toLowerCase(), otp.trim());
+      await login(normalizedEmail, otp.trim());
       router.push('/');
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid or expired OTP code.');
