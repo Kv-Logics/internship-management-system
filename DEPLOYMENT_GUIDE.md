@@ -48,7 +48,16 @@ Now that your `.env.production` file is configured, you can start the system. Th
 sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-### Step 4: Verify the Deployment
+### Step 4: Seed the Faculty Database
+Once the containers are running for the first time, you must populate the database with the faculty list (`emp details.csv`) so they can log in.
+
+Run this command to execute the seed script inside the backend container:
+```bash
+sudo docker compose -f docker-compose.prod.yml exec backend python seed.py
+```
+*(You only need to run this command once on the very first setup!)*
+
+### Step 5: Verify the Deployment
 Run the following command to check if all containers (db, backend, frontend, nginx) are running smoothly:
 ```bash
 sudo docker compose -f docker-compose.prod.yml ps

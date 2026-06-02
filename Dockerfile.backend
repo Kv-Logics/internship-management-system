@@ -29,7 +29,8 @@ RUN pip install --no-cache /wheels/*
 # Copy backend application code
 COPY backend/ .
 
-# Ensure appuser owns the directory so it can write to uploads/signatures folders
+# Copy the CSV files into the container so the seed script can find them
+COPY *.csv ./
 RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
