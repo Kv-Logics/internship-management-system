@@ -64,7 +64,7 @@ async def seed_data():
         # System Administrator
         admin = Faculty(
             faculty_name="Administrator",
-            email="admin@nitt.edu",
+            email="114123003@nitt.edu",
             role="admin"
         )
         db.add(admin)
@@ -78,7 +78,7 @@ async def seed_data():
         db.add(dean)
         
         await db.commit()
-        print("Administrator (admin@nitt.edu) and Dean (deanrc@nitt.edu) seeded successfully!")
+        print("Administrator (114123003@nitt.edu) and Dean (deanrc@nitt.edu) seeded successfully!")
         
     print("Database seeding completed cleanly!")
 
