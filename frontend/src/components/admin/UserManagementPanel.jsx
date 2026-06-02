@@ -11,6 +11,8 @@ export default function UserManagementPanel() {
   });
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [deleteEmail, setDeleteEmail] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchDepartments();
@@ -52,6 +54,35 @@ export default function UserManagementPanel() {
       toast.error(err.response?.data?.detail || 'Failed to create user');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (e) => {
+    e.preventDefault();
+    if (!deleteEmail.trim()) return;
+
+    if (!window.confirm(`Are you sure you want to permanently delete the faculty account for ${deleteEmail}?`)) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const res = await api.get('/auth/faculties');
+      const faculty = res.data.find(f => f.email === deleteEmail.trim().toLowerCase());
+      
+      if (!faculty) {
+        toast.error('Faculty with this email not found.');
+        return;
+      }
+
+      await api.delete(`/auth/faculties/${faculty.faculty_id}`);
+      toast.success('Faculty deleted successfully.');
+      setDeleteEmail('');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.detail || 'Failed to delete faculty');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -131,6 +162,36 @@ export default function UserManagementPanel() {
               {loading ? 'Creating...' : 'Create User'}
             </button>
           </div>
+        </form>
+      </div>
+
+      {/* Delete User Section */}
+      <div className="p-6 border-t border-gray-100 bg-red-50/30">
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-red-800">Danger Zone: Delete User</h3>
+          <p className="text-sm text-red-600 mt-1">Permanently remove a faculty account from the system.</p>
+        </div>
+        <form onSubmit={handleDelete} className="flex flex-col md:flex-row items-end gap-4">
+          <div className="flex-1 w-full">
+            <label className="block text-sm font-semibold text-red-700 mb-1">Email Address to Delete</label>
+            <input
+              type="email"
+              required
+              value={deleteEmail}
+              onChange={(e) => setDeleteEmail(e.target.value)}
+              placeholder="user@nitt.edu"
+              className="w-full border-red-200 rounded-lg shadow-sm focus:border-red-500 focus:ring-red-500 p-2 border bg-white"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={deleting}
+            className={`px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-all whitespace-nowrap ${
+              deleting ? 'opacity-70 cursor-not-allowed' : ''
+            }`}
+          >
+            {deleting ? 'Deleting...' : 'Delete User'}
+          </button>
         </form>
       </div>
     </div>

@@ -56,8 +56,8 @@ export default function DepartmentSelectionModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-scaleUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80">
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 p-6 text-white text-center">
           <div className="inline-flex bg-white/20 p-3 rounded-full mb-3">
             <Building2 size={32} />

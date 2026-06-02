@@ -81,9 +81,19 @@ async def request_otp(data: OtpRequest, db: AsyncSession = Depends(get_db)):
     
     # Send email
     msg = EmailMessage()
-    msg['Subject'] = "NITT IMS - Verification Code"
+    msg['Subject'] = "Your NITT Login Verification Code"
     msg['To'] = email
-    msg.set_content(f"Your NITT Internship Management System verification code is: {code}\n\nThis code will expire in 5 minutes.")
+    
+    html_content = f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>NITT Authentication</h2>
+          <p>Your one-time password (OTP) for login is:</p>
+          <h1 style="color: #4f46e5; letter-spacing: 5px;">{code}</h1>
+          <p>This code will expire in 5 minutes. Do not share it with anyone.</p>
+        </div>
+    """
+    
+    msg.set_content(html_content, subtype='html')
     
     try:
         await send_email_with_settings(db, msg)

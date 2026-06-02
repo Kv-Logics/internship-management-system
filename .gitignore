@@ -156,3 +156,4 @@ backend/app/*/*/__pycache__/
 backend/uploads/
 backend/generated_certificates/
 backend/.env
+!.env.production.example
