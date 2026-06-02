@@ -1,10 +1,31 @@
-import React from 'react';
-import { Award, UserCheck, Edit3, BookOpen, Calendar } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Award, UserCheck, Edit3, BookOpen, Calendar, Search, ChevronDown } from 'lucide-react';
 
 export default function InternshipProjectSection({ formData, handleChange, user, faculties, selectedFacultyId, setSelectedFacultyId, settings }) {
   const minStartDate = settings?.project_start_date || "2026-05-18";
   const maxProjectEndDate = settings?.project_end_date || "2026-07-31";
   const minDurationDays = parseInt(settings?.min_duration_days || "28");
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredFaculties = faculties.filter(fac => 
+    fac.faculty_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    fac.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const selectedFaculty = faculties.find(fac => fac.faculty_id === selectedFacultyId);
 
   const calculateDateOffset = (dateStr, days) => {
     if (!dateStr) return "";
@@ -37,18 +58,63 @@ export default function InternshipProjectSection({ formData, handleChange, user,
               Assign Faculty Mentor
             </label>
             <p className="text-xs text-indigo-700/80 mb-3">As an administrator, select which faculty member will act as the official mentor for this student.</p>
-            <select
-              value={selectedFacultyId}
-              onChange={(e) => setSelectedFacultyId(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white shadow-sm font-semibold text-gray-700 transition-all"
-              required
-            >
-              {faculties.map((fac) => (
-                <option key={fac.faculty_id} value={fac.faculty_id}>
-                  {fac.faculty_name} ({fac.email})
-                </option>
-              ))}
-            </select>
+            
+            <div className="relative" ref={dropdownRef}>
+              <div 
+                className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white shadow-sm font-semibold text-gray-700 cursor-pointer flex justify-between items-center transition-all"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                <span className="truncate">
+                  {selectedFaculty ? `${selectedFaculty.faculty_name} (${selectedFaculty.email})` : "Select a Faculty Mentor..."}
+                </span>
+                <ChevronDown size={18} className={`text-gray-400 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+              </div>
+
+              {isDropdownOpen && (
+                <div className="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                  <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                        <Search size={16} />
+                      </span>
+                      <input
+                        type="text"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                        placeholder="Search by name or email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <ul className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
+                    {filteredFaculties.length > 0 ? (
+                      filteredFaculties.map((fac) => (
+                        <li 
+                          key={fac.faculty_id}
+                          className={`px-4 py-2.5 text-sm cursor-pointer hover:bg-indigo-50 transition-colors ${selectedFacultyId === fac.faculty_id ? "bg-indigo-100/50 text-indigo-900 font-bold" : "text-gray-700 font-medium"}`}
+                          onClick={() => {
+                            setSelectedFacultyId(fac.faculty_id);
+                            setIsDropdownOpen(false);
+                            setSearchQuery('');
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span>{fac.faculty_name}</span>
+                            <span className="text-xs text-gray-500 font-normal">{fac.email}</span>
+                          </div>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="px-4 py-3 text-sm text-gray-500 text-center italic">
+                        No faculty members found.
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
