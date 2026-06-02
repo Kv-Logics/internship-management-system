@@ -9,18 +9,25 @@ from app.models.system_setting import SystemSetting
 
 logger = logging.getLogger(__name__)
 
-async def send_email_with_settings(db: AsyncSession, msg: EmailMessage):
-    # Fetch SMTP settings from DB
-    keys = ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_secure"]
-    stmt = select(SystemSetting).filter(SystemSetting.key.in_(keys))
-    result = await db.execute(stmt)
-    settings = {s.key: s.value for s in result.scalars().all()}
-    
-    smtp_host = settings.get("smtp_host") or os.getenv("SMTP_HOST")
-    smtp_port = settings.get("smtp_port") or os.getenv("SMTP_PORT")
-    smtp_username = settings.get("smtp_username") or os.getenv("SMTP_USERNAME")
-    smtp_password = settings.get("smtp_password") or os.getenv("SMTP_PASSWORD")
-    smtp_secure = settings.get("smtp_secure") or os.getenv("SMTP_SECURE", "ssl") # "ssl", "tls", or "none"
+async def send_email_with_settings(db: AsyncSession, msg: EmailMessage, use_env_only: bool = False):
+    if use_env_only:
+        smtp_host = os.getenv("SMTP_HOST")
+        smtp_port = os.getenv("SMTP_PORT")
+        smtp_username = os.getenv("SMTP_USERNAME")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+        smtp_secure = os.getenv("SMTP_SECURE", "ssl")
+    else:
+        # Fetch SMTP settings from DB
+        keys = ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_secure"]
+        stmt = select(SystemSetting).filter(SystemSetting.key.in_(keys))
+        result = await db.execute(stmt)
+        settings = {s.key: s.value for s in result.scalars().all()}
+        
+        smtp_host = settings.get("smtp_host") or os.getenv("SMTP_HOST")
+        smtp_port = settings.get("smtp_port") or os.getenv("SMTP_PORT")
+        smtp_username = settings.get("smtp_username") or os.getenv("SMTP_USERNAME")
+        smtp_password = settings.get("smtp_password") or os.getenv("SMTP_PASSWORD")
+        smtp_secure = settings.get("smtp_secure") or os.getenv("SMTP_SECURE", "ssl") # "ssl", "tls", or "none"
     
     # Ensure SMTP settings are configured in database or environment
     if not smtp_host or not smtp_username or not smtp_password:

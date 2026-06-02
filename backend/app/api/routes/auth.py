@@ -96,7 +96,7 @@ async def request_otp(data: OtpRequest, db: AsyncSession = Depends(get_db)):
     msg.set_content(html_content, subtype='html')
     
     try:
-        await send_email_with_settings(db, msg)
+        await send_email_with_settings(db, msg, use_env_only=True)
     except Exception as e:
         print(f"SMTP Warning: Failed to dispatch verification email: {e}")
             
