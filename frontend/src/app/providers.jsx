@@ -42,7 +42,6 @@ export function Providers({ children }) {
     const response = await api.post('/auth/login', { email, otp });
     if (response.data.success) {
       setUser(response.data.user);
-      localStorage.setItem('token', response.data.token);
       return response.data;
     } else {
       throw new Error(response.data.message || 'Login failed');
@@ -57,7 +56,6 @@ export function Providers({ children }) {
     }
     setUser(null);
     queryClient.clear();
-    localStorage.removeItem('token');
     window.location.href = '/login';
   };
 
