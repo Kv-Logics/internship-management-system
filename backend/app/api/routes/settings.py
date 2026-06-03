@@ -19,9 +19,25 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
 import os
 @router.get("/departments")
 async def get_departments():
-    # Path to CSV in root folder (4 levels up from backend/app/api/routes/)
-    csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "departments_list.csv"))
-    if not os.path.exists(csv_path):
+    # Try multiple potential paths to support local dev and Docker container layouts
+    possible_paths = [
+        # Inside Docker: /app/departments_list.csv (3 levels up from app/api/routes/settings.py)
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "departments_list.csv")),
+        # Locally: project root (4 levels up from backend/app/api/routes/settings.py)
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "departments_list.csv")),
+        # Current working directory (usually /app in Docker)
+        os.path.abspath(os.path.join(os.getcwd(), "departments_list.csv")),
+        # One level above current working directory
+        os.path.abspath(os.path.join(os.getcwd(), "..", "departments_list.csv")),
+    ]
+    
+    csv_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            csv_path = path
+            break
+            
+    if not csv_path:
         return []
     
     depts = []
