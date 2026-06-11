@@ -9,7 +9,7 @@ import FacultyDetailView from '../../components/faculties/FacultyDetailView';
 import FacultyDirectory from '../../components/faculties/FacultyDirectory';
 
 export default function FacultyDatabase() {
-  const { user } = useContext(AuthContext);
+  const { user, loading: authLoading } = useContext(AuthContext);
   const router = useRouter();
   
   const [faculties, setFaculties] = useState([]);
@@ -22,14 +22,21 @@ export default function FacultyDatabase() {
   const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
     // Only allow admin and dean to access this page
-    if (user && user.role !== 'admin' && user.role !== 'dean') {
+    if (user.role !== 'admin' && user.role !== 'dean') {
       toast.error('Access Denied: Only system administrators can access the database panel.');
       router.push('/');
     } else {
       fetchDatabase();
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const fetchDatabase = async () => {
     setLoading(true);

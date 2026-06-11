@@ -24,6 +24,7 @@ export default function PaymentsPortal() {
   const { data: internships = [], isLoading } = useQuery({
     queryKey: ['internships', 'all'],
     queryFn: async () => (await api.get('/internships/')).data,
+    enabled: !!user,
   });
 
   const refreshList = () => {
