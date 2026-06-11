@@ -23,6 +23,23 @@ export default function FacultyDatabase() {
   // Selected Faculty details view state
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (user.role !== 'admin' && user.role !== 'dean') return;
+
+    const fetchTotalCount = async () => {
+      try {
+        const res = await api.get('/auth/faculties?limit=2000');
+        setTotalCount(res.data.length);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchTotalCount();
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -105,6 +122,7 @@ export default function FacultyDatabase() {
       await api.delete(`/auth/faculties/${facultyId}`);
       toast.success('Faculty member deleted successfully.');
       setFaculties(faculties.filter(fac => fac.faculty_id !== facultyId));
+      setTotalCount(prev => Math.max(0, prev - 1));
       if (selectedFaculty?.faculty_id === facultyId) {
         setSelectedFaculty(null);
       }
@@ -212,7 +230,7 @@ export default function FacultyDatabase() {
             <span>Sync Directory</span>
           </button>
           <div className="bg-blue-50 px-4 py-2 rounded-none border border-blue-200 text-blue-800 font-bold text-xs">
-            Mentors Count: {faculties.length}
+            Mentors Count: {totalCount || faculties.length}
           </div>
         </div>
       </div>
