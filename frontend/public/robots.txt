@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dean/
+
+Sitemap: https://ims.nitt.edu/sitemap.xml
