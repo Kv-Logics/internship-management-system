@@ -413,7 +413,10 @@ async def upload_signature(
     from app.utils.filenames import get_faculty_prefix
     faculty_prefix = get_faculty_prefix(current_user.email)
     
-    ext = (file.filename or "signature.png").split(".")[-1]
+    ext = (file.filename or "signature.png").split(".")[-1].lower()
+    if ext not in ("png", "jpg", "jpeg"):
+        raise HTTPException(status_code=400, detail="Forbidden file type. Only PNG, JPG, and JPEG signatures are allowed.")
+        
     filename = f"{faculty_prefix}_sign.{ext}"
     os.makedirs("signatures", exist_ok=True)
     filepath = os.path.join("signatures", filename)
