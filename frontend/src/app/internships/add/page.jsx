@@ -11,7 +11,7 @@ import InternshipProjectSection from '../../../components/internship/add/Interns
 
 export default function AddInternship() {
   const router = useRouter();
-  const { user } = useContext(AuthContext);
+  const { user, loading: authLoading } = useContext(AuthContext);
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState({
@@ -23,6 +23,9 @@ export default function AddInternship() {
   });
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
     const fetchSettings = async () => {
       try {
         const res = await api.get('/settings/');
@@ -32,9 +35,11 @@ export default function AddInternship() {
       }
     };
     fetchSettings();
-  }, []);
+  }, [user, authLoading]);
   
   useEffect(() => {
+    if (authLoading) return;
+
     const checkLimit = async () => {
       if (user && user.role !== 'admin') {
         try {
@@ -51,7 +56,7 @@ export default function AddInternship() {
       }
     };
     checkLimit();
-  }, [user, router]);
+  }, [user, authLoading, router]);
   const [formData, setFormData] = useState({
     intern_name: '',
     email: '',
@@ -70,6 +75,7 @@ export default function AddInternship() {
   const [selectedFacultyId, setSelectedFacultyId] = useState('');
 
   useEffect(() => {
+    if (authLoading) return;
     const fetchFacultiesList = async () => {
       if (user?.role === 'admin') {
         try {
@@ -84,7 +90,7 @@ export default function AddInternship() {
       }
     };
     fetchFacultiesList();
-  }, [user]);
+  }, [user, authLoading]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
