@@ -111,7 +111,7 @@ class LoginRequest(BaseModel):
     otp: str
 
 @router.post("/login")
-async def login(response: Response, data: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(request: Request, response: Response, data: LoginRequest, db: AsyncSession = Depends(get_db)):
     email = data.email.strip().lower()
     otp_code = data.otp.strip()
     
@@ -163,13 +163,19 @@ async def login(response: Response, data: LoginRequest, db: AsyncSession = Depen
         
     await db.commit()
     
+    # Determine if running in secure (HTTPS) environment
+    is_secure = (
+        request.headers.get("x-forwarded-proto", "http") == "https" or
+        request.url.scheme == "https"
+    )
+    
     # Set cookies
     response.set_cookie(
         key="accessToken",
         value=access_token,
         httponly=True,
-        secure=os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production",
-        samesite="none" if (os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production") else "lax",
+        secure=is_secure,
+        samesite="lax",
         path="/",
         max_age=15 * 60
     )
@@ -178,8 +184,8 @@ async def login(response: Response, data: LoginRequest, db: AsyncSession = Depen
         key="refreshToken",
         value=refresh_token,
         httponly=True,
-        secure=os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production",
-        samesite="none" if (os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production") else "lax",
+        secure=is_secure,
+        samesite="lax",
         path="/",
         max_age=7 * 24 * 60 * 60
     )
@@ -242,12 +248,18 @@ async def refresh(request: Request, response: Response, db: AsyncSession = Depen
     db.add(db_ref)
     await db.commit()
     
+    # Determine if running in secure (HTTPS) environment
+    is_secure = (
+        request.headers.get("x-forwarded-proto", "http") == "https" or
+        request.url.scheme == "https"
+    )
+    
     response.set_cookie(
         key="accessToken",
         value=new_access_token,
         httponly=True,
-        secure=os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production",
-        samesite="none" if (os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production") else "lax",
+        secure=is_secure,
+        samesite="lax",
         path="/",
         max_age=15 * 60
     )
@@ -256,8 +268,8 @@ async def refresh(request: Request, response: Response, db: AsyncSession = Depen
         key="refreshToken",
         value=new_refresh_token,
         httponly=True,
-        secure=os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production",
-        samesite="none" if (os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production") else "lax",
+        secure=is_secure,
+        samesite="lax",
         path="/",
         max_age=7 * 24 * 60 * 60
     )
@@ -275,17 +287,22 @@ async def logout(request: Request, response: Response, db: AsyncSession = Depend
             await db.delete(db_ref)
             await db.commit()
             
+    is_secure = (
+        request.headers.get("x-forwarded-proto", "http") == "https" or
+        request.url.scheme == "https"
+    )
+    
     response.delete_cookie(
         key="accessToken",
         path="/",
-        secure=os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production",
-        samesite="none" if (os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production") else "lax",
+        secure=is_secure,
+        samesite="lax",
     )
     response.delete_cookie(
         key="refreshToken",
         path="/",
-        secure=os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production",
-        samesite="none" if (os.getenv("ENVIRONMENT") == "production" or os.getenv("NODE_ENV") == "production") else "lax",
+        secure=is_secure,
+        samesite="lax",
     )
     return {"success": True, "message": "Logged out successfully."}
 
