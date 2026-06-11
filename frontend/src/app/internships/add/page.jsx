@@ -79,7 +79,7 @@ export default function AddInternship() {
     const fetchFacultiesList = async () => {
       if (user?.role === 'admin') {
         try {
-          const res = await api.get('/auth/faculties');
+          const res = await api.get('/auth/faculties?limit=1000');
           setFaculties(res.data);
           if (res.data.length > 0) {
             setSelectedFacultyId(res.data[0].faculty_id);
