@@ -3,9 +3,9 @@ import { User, Mail, Phone, BookOpen, GraduationCap } from 'lucide-react';
 
 export default function StudentProfileSection({ formData, handleChange }) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-150 overflow-hidden">
+    <div className="bg-white rounded-none shadow-none border border-gray-150 overflow-hidden">
       <div className="bg-indigo-50 border-b border-indigo-100 p-5 px-6 flex items-center space-x-3">
-        <div className="bg-indigo-600 p-2 rounded-lg text-white">
+        <div className="bg-indigo-600 p-2 rounded-none text-white">
           <User size={20} />
         </div>
         <div>
@@ -27,7 +27,7 @@ export default function StudentProfileSection({ formData, handleChange }) {
               value={formData.intern_name}
               onChange={handleChange}
               placeholder="e.g. Jane Doe"
-              className="pl-10 w-full rounded-lg border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="pl-10 w-full rounded-none border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               required
             />
           </div>
@@ -45,7 +45,7 @@ export default function StudentProfileSection({ formData, handleChange }) {
               value={formData.email}
               onChange={handleChange}
               placeholder="e.g. student@nitt.edu"
-              className="pl-10 w-full rounded-lg border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="pl-10 w-full rounded-none border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               required
             />
           </div>
@@ -66,7 +66,7 @@ export default function StudentProfileSection({ formData, handleChange }) {
               value={formData.phone}
               onChange={handleChange}
               placeholder="e.g. 9876543210"
-              className="pl-10 w-full rounded-lg border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="pl-10 w-full rounded-none border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               required
             />
           </div>
@@ -84,7 +84,7 @@ export default function StudentProfileSection({ formData, handleChange }) {
               value={formData.college_name}
               onChange={handleChange}
               placeholder="e.g. NIT Trichy"
-              className="pl-10 w-full rounded-lg border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="pl-10 w-full rounded-none border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               required
             />
           </div>
@@ -102,7 +102,7 @@ export default function StudentProfileSection({ formData, handleChange }) {
               value={formData.department}
               onChange={handleChange}
               placeholder="e.g. Department of Computer Science & Engineering"
-              className="pl-10 w-full rounded-lg border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="pl-10 w-full rounded-none border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               required
             />
           </div>

@@ -19,7 +19,7 @@ WORKDIR /app
 RUN adduser --disabled-password --gecos '' appuser
 
 # Install curl for HEALTHCHECK and runtime dependencies if any
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 
 # Copy built wheels from builder and install them
 COPY --from=builder /app/wheels /wheels
@@ -29,8 +29,10 @@ RUN pip install --no-cache /wheels/*
 # Copy backend application code
 COPY backend/ .
 
-# Copy the CSV files into the container so the seed script can find them
+# Copy the CSV files and template images into the container
 COPY *.csv ./
+COPY reference_image.jpeg ./
+COPY fonts/ fonts/
 RUN chown -R appuser:appuser /app
 
 # Switch to non-root user

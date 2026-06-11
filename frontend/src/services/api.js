@@ -22,12 +22,31 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/auth/callback') {
-        window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes('/auth/refresh')
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        // Try to silently refresh the token
+        await api.post('/auth/refresh');
+        // If successful, retry the original request
+        return api(originalRequest);
+      } catch (refreshError) {
+        // If refresh fails (e.g., refresh token expired after 7 days), log them out
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/auth/callback') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
 );

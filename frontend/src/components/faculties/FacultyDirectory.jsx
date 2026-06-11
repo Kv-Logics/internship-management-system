@@ -15,13 +15,13 @@ export default function FacultyDirectory({ search, setSearch, filteredFaculties,
             placeholder="Search by mentor name or institutional email..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            className="pl-10 pr-4 py-2.5 w-full bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all" 
+            className="pl-10 pr-4 py-2.5 w-full bg-white border border-gray-200 rounded-none text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-none transition-all" 
           />
         </div>
       </div>
 
       {/* Lightweight List */}
-      <div className="bg-white rounded-2xl border border-gray-150 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-none border border-gray-150 shadow-none overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-150">
             <thead className="bg-gray-50/75">
@@ -45,7 +45,7 @@ export default function FacultyDirectory({ search, setSearch, filteredFaculties,
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
-                          <div className="h-8 w-8 bg-indigo-150 text-indigo-700 flex items-center justify-center rounded-lg shrink-0">
+                          <div className="h-8 w-8 bg-indigo-150 text-indigo-700 flex items-center justify-center rounded-none shrink-0">
                             <User size={15} />
                           </div>
                           <span className="text-sm font-bold text-gray-800">{fac.faculty_name}</span>
@@ -58,7 +58,7 @@ export default function FacultyDirectory({ search, setSearch, filteredFaculties,
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${fac.role === 'dean' ? 'bg-amber-100 text-amber-800' : fac.role === 'admin' ? 'bg-rose-100 text-rose-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                        <span className={`inline-flex px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider ${fac.role === 'dean' ? 'bg-amber-100 text-amber-800' : fac.role === 'admin' ? 'bg-rose-100 text-rose-800' : 'bg-indigo-100 text-indigo-800'}`}>
                           {fac.role || 'faculty'}
                         </span>
                       </td>
@@ -69,7 +69,7 @@ export default function FacultyDirectory({ search, setSearch, filteredFaculties,
                         <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
                           <button 
                             onClick={() => setSelectedFaculty(fac)} 
-                            className="p-1.5 text-gray-550 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" 
+                            className="p-1.5 text-gray-550 hover:text-indigo-600 hover:bg-indigo-50 rounded-none transition-all" 
                             title="Inspect Details"
                           >
                             <Eye size={15} />
@@ -78,7 +78,7 @@ export default function FacultyDirectory({ search, setSearch, filteredFaculties,
                             <button 
                               onClick={(e) => handleDeleteFaculty(fac.faculty_id, e)} 
                               disabled={deletingId === fac.faculty_id} 
-                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50" 
+                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-none transition-all disabled:opacity-50" 
                               title="Delete Faculty Account"
                             >
                               <Trash2 size={15} />

@@ -6,9 +6,6 @@ import { LayoutDashboard, Users, Clock, Award, ArrowUpRight, TrendingUp, Calenda
 import Link from 'next/link';
 import { AuthContext } from './providers';
 import DashboardStats from '../components/dashboard/DashboardStats';
-import MentorshipProgress from '../components/dashboard/MentorshipProgress';
-import AdminOperationsPanel from '../components/dashboard/AdminOperationsPanel';
-
 // fetchDashboardStats removed. Query caching handles calculation via the select option.
 
 export default function Dashboard() {
@@ -59,7 +56,7 @@ export default function Dashboard() {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
+          <div className="h-12 w-12 animate-spin rounded-none border-4 border-indigo-600 border-t-transparent"></div>
           <p className="text-sm font-semibold text-gray-500 animate-pulse">Orchestrating Dashboard Metrics...</p>
         </div>
       </div>
@@ -68,7 +65,7 @@ export default function Dashboard() {
 
   if (isError) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center text-red-700 max-w-lg mx-auto my-12">
+      <div className="bg-red-50 border border-red-200 rounded-none p-6 text-center text-red-700 max-w-lg mx-auto my-12">
         <p className="font-bold text-lg mb-2">Metrics Fetch Failed</p>
         <p className="text-sm">Ensure your FastAPI server is running on port 8000 and CORS is enabled.</p>
       </div>
@@ -82,18 +79,15 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 py-4">
       {/* Welcome Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-indigo-900 to-indigo-950 p-8 rounded-3xl shadow-xl text-white overflow-hidden relative border border-indigo-850">
-        <div className="absolute right-0 top-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-        <div className="absolute left-1/3 bottom-0 w-60 h-60 bg-purple-500/10 rounded-full blur-3xl -ml-20 -mb-20"></div>
-        
-        <div className="z-10 space-y-2">
-          <h2 className="text-3xl font-extrabold tracking-tight">Academic Mentorship Insights</h2>
-          <p className="text-indigo-200 text-sm max-w-xl leading-relaxed">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 border border-gray-300">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Academic Mentorship Insights</h2>
+          <p className="text-gray-600 text-sm max-w-xl">
             Real-time analytics and tracking interface for your mentored student internships, project periods, and official certificate status.
           </p>
         </div>
         {(stats?.total < 5 || user?.role === 'admin') && (
-          <Link href="/internships/add" className="z-10 mt-6 md:mt-0 px-6 py-3.5 bg-white text-indigo-900 font-bold rounded-xl shadow-lg hover:shadow-white/10 hover:scale-105 active:scale-98 transition-all duration-300 flex items-center space-x-2 text-sm">
+          <Link href="/internships/add" className="mt-6 md:mt-0 px-6 py-3 bg-blue-700 text-white font-semibold flex items-center space-x-2 text-sm hover:bg-blue-800 transition-colors">
             <span>Add New Intern</span>
             <ArrowUpRight size={16} />
           </Link>
@@ -101,10 +95,7 @@ export default function Dashboard() {
       </div>
 
       <DashboardStats stats={stats} user={user} facultiesCount={facultiesCount} />
-      <MentorshipProgress stats={stats} completionRate={completionRate} />
-
-      {user?.role === 'admin' && <AdminOperationsPanel />}
-    </div>
+          </div>
   );
 }
 

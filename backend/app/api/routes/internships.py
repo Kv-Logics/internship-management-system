@@ -251,12 +251,20 @@ async def update_internship(internship_id: UUID, internship_update: InternshipUp
         dean_result = await db.execute(select(Faculty).filter(Faculty.role == "dean"))
         dean = dean_result.scalars().first()
         
+        faculty = updated_internship.faculty
+        dept = faculty.department if (faculty and hasattr(faculty, 'department')) else ""
+        dept_clean = dept.strip() if dept else ""
+        if dept_clean.lower().startswith("department of "):
+            dept_clean = dept_clean[len("department of "):].strip()
+        elif dept_clean.lower().startswith("department of"):
+            dept_clean = dept_clean[len("department of"):].strip()
+
         await asyncio.to_thread(
             generate_certificate_pdf,
             intern_name=updated_internship.intern.intern_name,
             college_name=updated_internship.intern.college_name,
             title=updated_internship.internship_title,
-            domain=updated_internship.internship_domain,
+            domain=dept_clean.title() if dept_clean else "Faculty",
             start_date=updated_internship.start_date,
             end_date=updated_internship.end_date,
             output_path=updated_internship.certificate.certificate_path,

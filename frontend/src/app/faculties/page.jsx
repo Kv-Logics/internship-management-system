@@ -159,21 +159,20 @@ export default function FacultyDatabase() {
     <div className="space-y-6">
       
       {/* Header Panel */}
-      <div className="bg-gradient-to-r from-indigo-900 to-indigo-950 p-6 rounded-3xl border border-indigo-850 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+      <div className="bg-white p-6 border border-gray-300 text-gray-900 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        
         <div className="z-10">
           <h2 className="text-2xl font-extrabold tracking-tight">Faculty Directory</h2>
-          <p className="text-xs text-indigo-200 mt-1">Manage and sync the employee directory database records.</p>
         </div>
         <div className="z-10 flex items-center gap-3">
           <button 
             onClick={fetchDatabase} 
-            className="flex items-center space-x-1 px-4 py-2.5 bg-white/10 hover:bg-white/15 active:bg-white/20 border border-white/10 rounded-xl text-xs font-semibold tracking-wider transition-all"
+            className="flex items-center space-x-1 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded-none text-xs font-semibold text-gray-700 transition-all cursor-pointer"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             <span>Sync Directory</span>
           </button>
-          <div className="bg-indigo-500/20 px-4 py-2.5 rounded-xl border border-indigo-500/30 text-indigo-200 font-bold text-xs">
+          <div className="bg-blue-50 px-4 py-2 rounded-none border border-blue-200 text-blue-800 font-bold text-xs">
             Mentors Count: {faculties.length}
           </div>
         </div>

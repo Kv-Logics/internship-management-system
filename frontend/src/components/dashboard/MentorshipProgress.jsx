@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function MentorshipProgress({ stats, completionRate }) {
   return (
-    <div className="bg-white rounded-3xl p-8 border border-gray-150 shadow-sm flex flex-col md:flex-row justify-between items-center gap-8">
+    <div className="bg-white p-6 border border-gray-300 flex flex-col md:flex-row justify-between items-center gap-8">
       <div className="space-y-2 text-center md:text-left">
         <h3 className="text-xl font-bold text-gray-800">Mentorship Accomplishment</h3>
         <p className="text-xs text-gray-500">Ratio of successfully concluded student internships</p>
@@ -16,8 +16,7 @@ export default function MentorshipProgress({ stats, completionRate }) {
             <circle cx="72" cy="72" r="60" stroke="#4f46e5" strokeWidth="12" fill="transparent"
               strokeDasharray={376.8}
               strokeDashoffset={376.8 - (376.8 * completionRate) / 100}
-              strokeLinecap="round"
-              className="transition-all duration-1000 ease-out"
+              strokeLinecap="square"
             />
           </svg>
           <div className="absolute text-center">
@@ -27,7 +26,7 @@ export default function MentorshipProgress({ stats, completionRate }) {
         </div>
       </div>
 
-      <div className="bg-gray-50 rounded-2xl p-6 flex flex-col sm:flex-row justify-between gap-8 text-center text-xs border border-gray-150 min-w-[320px]">
+      <div className="bg-gray-50 p-6 flex flex-col sm:flex-row justify-between gap-8 text-center text-xs border border-gray-300 min-w-[320px]">
         <div>
           <span className="text-gray-400 block mb-1 font-semibold uppercase tracking-wider text-[10px]">Ongoing</span>
           <span className="font-extrabold text-gray-800 text-base">{stats?.ongoing || 0}</span>

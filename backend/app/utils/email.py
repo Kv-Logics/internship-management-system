@@ -35,28 +35,55 @@ async def send_email_with_settings(db: AsyncSession, msg: EmailMessage, use_env_
         
     port = int(smtp_port) if smtp_port and smtp_port.isdigit() else 465
     
-    # Ensure From header is set
+    from email.utils import make_msgid, formatdate
+
+    # Ensure standard headers are set to prevent strict filters (like Gmail) from dropping it
+    import ssl
+    # Ensure From header is set properly, appending domain if it's just a username prefix
     if 'From' not in msg:
-        msg['From'] = smtp_username
+        if "@" not in smtp_username:
+            msg['From'] = f"{smtp_username}@nitt.edu"
+        else:
+            msg['From'] = smtp_username
+            
+    if 'Date' not in msg:
+        msg['Date'] = formatdate(localtime=True)
+    if 'Message-ID' not in msg:
+        msg['Message-ID'] = make_msgid(domain="nitt.edu")
         
     def _send():
+        logger.info("=== DEBUG: Raw Email Payload ===")
+        logger.info(msg.as_string())
+        logger.info("================================")
+        
+        # Create an unverified SSL context to match PHP's verify_peer=false
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+
         if smtp_secure == "ssl":
-            with smtplib.SMTP_SSL(smtp_host, port, timeout=2.0) as smtp:
+            with smtplib.SMTP_SSL(smtp_host, port, timeout=15.0, context=ssl_context) as smtp:
+                smtp.set_debuglevel(1)
                 if smtp_username and smtp_password:
                     smtp.login(smtp_username, smtp_password)
-                smtp.send_message(msg)
+                result = smtp.send_message(msg)
+                logger.info(f"SMTP send_message result: {result}")
         elif smtp_secure == "tls":
-            with smtplib.SMTP(smtp_host, port, timeout=2.0) as smtp:
+            with smtplib.SMTP(smtp_host, port, timeout=15.0) as smtp:
+                smtp.set_debuglevel(1)
                 smtp.ehlo()
-                smtp.starttls()
+                smtp.starttls(context=ssl_context)
                 smtp.ehlo()
                 if smtp_username and smtp_password:
                     smtp.login(smtp_username, smtp_password)
-                smtp.send_message(msg)
+                result = smtp.send_message(msg)
+                logger.info(f"SMTP send_message result: {result}")
         else: # none
             with smtplib.SMTP(smtp_host, port, timeout=2.0) as smtp:
+                smtp.set_debuglevel(1)
                 if smtp_username and smtp_password:
                     smtp.login(smtp_username, smtp_password)
-                smtp.send_message(msg)
+                result = smtp.send_message(msg)
+                logger.info(f"SMTP send_message result: {result}")
                 
     await asyncio.to_thread(_send)

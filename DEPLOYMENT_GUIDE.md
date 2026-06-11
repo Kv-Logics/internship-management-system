@@ -1,12 +1,12 @@
 # NITT Internship Management System: Deployment Guide (Red Hat/RHEL)
 
-This is a basic, step-by-step guide for deploying the application to a Red Hat Enterprise Linux (RHEL) server for the `cdi.nitt.edu` domain.
+This is a basic, step-by-step guide for deploying the application to a Red Hat Enterprise Linux (RHEL) server for the `ims.nitt.edu` domain.
 
 ## Part 1: Local Preparation (Before Accessing the Server)
 
 I have already created the necessary production files in your local workspace:
 1. `docker-compose.prod.yml`: The production configuration that manages the database, backend, frontend, and Nginx.
-2. `nginx/nginx.conf`: The web server configuration set up to route traffic for `cdi.nitt.edu`.
+2. `nginx/nginx.conf`: The web server configuration set up to route traffic for `ims.nitt.edu`.
 3. `.env.production.example`: The template for your environment variables.
 
 **Your Tasks Before Server Access:**
@@ -62,7 +62,7 @@ Run the following command to check if all containers (db, backend, frontend, ngi
 ```bash
 sudo docker compose -f docker-compose.prod.yml ps
 ```
-You should now be able to access the application via HTTP (e.g., `http://cdi.nitt.edu:6006`) in your browser! Note the custom port `6006` is used to avoid host port conflicts.
+You should now be able to access the application via HTTP (e.g., `http://ims.nitt.edu:6006`) in your browser! Note the custom port `6006` is used to avoid host port conflicts.
 
 ---
 
@@ -78,7 +78,7 @@ sudo dnf install certbot -y
 
 2. **Generate the Certificate:**
 ```bash
-sudo certbot certonly --webroot -w /path/to/internship-management-system/certbot/www -d cdi.nitt.edu
+sudo certbot certonly --webroot -w /path/to/internship-management-system/certbot/www -d ims.nitt.edu
 ```
 
 3. **Enable SSL in Nginx:**
@@ -90,4 +90,4 @@ Uncomment the HTTPS `server` block and the `return 301` redirect in the HTTP blo
 sudo docker compose -f docker-compose.prod.yml restart nginx
 ```
 
-Your system is now fully deployed and secure! You can access it securely via `https://cdi.nitt.edu:6443`.
+Your system is now fully deployed and secure! You can access it securely via `https://ims.nitt.edu:6443`.

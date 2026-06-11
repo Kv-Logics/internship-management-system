@@ -195,18 +195,18 @@ export default function AddInternship() {
           <button
             type="button"
             onClick={() => router.push('/internships')}
-            className="px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="px-6 py-3 border border-gray-300 rounded-none text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:shadow-none transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-3 border border-transparent rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center space-x-2 disabled:opacity-50"
+            className="px-6 py-3 border border-transparent rounded-none text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-none hover:shadow-none transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center space-x-2 disabled:opacity-50"
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-none h-4 w-4 border-b-2 border-white"></div>
                 <span>Processing...</span>
               </>
             ) : (

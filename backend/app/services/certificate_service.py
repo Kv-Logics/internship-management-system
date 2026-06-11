@@ -38,21 +38,38 @@ def generate_certificate_pdf(
     draw = ImageDraw.Draw(img)
 
     # ── Fonts ────────────────────────────────────────────────────────────────
-    font_dir = r"C:\Windows\Fonts"
-    try:
-        font_bold  = ImageFont.truetype(os.path.join(font_dir, "timesbd.ttf"), 28)
-        font_regular = ImageFont.truetype(os.path.join(font_dir, "times.ttf"), 28)
-        font_verif = ImageFont.truetype(os.path.join(font_dir, "timesbd.ttf"), 15)
-    except IOError:
-        # Linux / CI fallback
+    # Priority: bundled fonts (project/fonts/) → Windows → Linux system fonts
+    _base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    _font_candidates = [
+        os.path.join(_base, "fonts", "timesbd.ttf"),                           # bundled (best — copy timesbd.ttf here)
+        "C:/Windows/Fonts/timesbd.ttf",                                        # Windows
+        "/usr/share/fonts/liberation/LiberationSerif-Bold.ttf",                # RHEL/CentOS
+        "/usr/share/fonts/dejavu/DejaVuSerif-Bold.ttf",                        # RHEL/CentOS
+        "/usr/share/fonts/google-noto/NotoSerif-Bold.ttf",                     # RHEL (noto)
+        "/usr/share/fonts/noto/NotoSerif-Bold.ttf",                            # RHEL (noto alt)
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",       # Ubuntu/Debian
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",               # Ubuntu/Debian
+    ]
+    _font_candidates_bold = _font_candidates
+    _font_candidates_verif = _font_candidates
+
+    font_bold = font_verif = None
+    for path in _font_candidates_bold:
         try:
-            font_bold  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", 28)
-            font_regular = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 28)
-            font_verif = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", 16)
-        except IOError:
-            font_bold  = ImageFont.load_default()
-            font_regular = ImageFont.load_default()
-            font_verif = ImageFont.load_default()
+            font_bold = ImageFont.truetype(path, 28)
+            break
+        except (IOError, OSError):
+            continue
+    for path in _font_candidates_verif:
+        try:
+            font_verif = ImageFont.truetype(path, 15)
+            break
+        except (IOError, OSError):
+            continue
+    if font_bold is None:
+        font_bold = ImageFont.load_default()
+    if font_verif is None:
+        font_verif = ImageFont.load_default()
 
     DARK = (30, 41, 59, 255)
     GREY = (100, 116, 139, 255)
@@ -112,18 +129,13 @@ def generate_certificate_pdf(
     draw_on_field(intern_name.title(), 391, 1165, 383, font_bold)
 
     # 3. College / institute name
-    draw_on_field(college_name.title(), 287, 943, 428, font_bold)
+    # Redraw the entire college underline as one continuous line x=287 to x=1332
+    # (avoids any gap between original template line and extension)
+    draw.line([(287, 428), (1332, 428)], fill=(14, 14, 14, 255), width=2)
+    draw_on_field(college_name.title(), 287, 1332, 428, font_bold)
 
-    # 3b. Department name — field: extended to x=378 to 1332, underline y=513
-    # Erase (white-out) the pre-printed "at" word and original line end
-    draw.rectangle([970, 480, 1040, 525], fill=(255, 255, 255, 255))
-    # Extend the underline line from x=970 to x=1332
-    draw.line([(970, 513), (1332, 513)], fill=(30, 41, 59, 255), width=2)
-    # Draw the new "at" word at the end of the extended line
-    tw_at, th_at = _text_size("at", font_regular)
-    draw.text((1345, 513 - th_at - 10), "at", font=font_regular, fill=DARK)
-    # Center the department name on the new wider field
-    draw_on_field(domain, 378, 1332, 513, font_bold)
+    # 3b. Department name — field: x=287 to 870, underline y=513
+    draw_on_field(domain, 287, 870, 513, font_bold)
 
     # 4. Dates ─────────────────────────────────────────────────────────────────
     try:

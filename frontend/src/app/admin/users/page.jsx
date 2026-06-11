@@ -26,11 +26,10 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-emerald-800 to-teal-900 p-6 rounded-3xl border border-emerald-850 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+      <div className="bg-white p-6 border border-gray-300 text-gray-900 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        
         <div className="z-10">
           <h2 className="text-2xl font-extrabold tracking-tight">User Management</h2>
-          <p className="text-xs text-emerald-200 mt-1">Provision and manage administrative and faculty accounts.</p>
         </div>
       </div>
       <UserManagementPanel />

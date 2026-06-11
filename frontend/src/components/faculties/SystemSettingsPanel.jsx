@@ -147,7 +147,7 @@ export default function SystemSettingsPanel() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-3xl border border-gray-150 p-12 flex flex-col items-center justify-center space-y-4 shadow-sm">
+      <div className="bg-white rounded-none border border-gray-150 p-12 flex flex-col items-center justify-center space-y-4 shadow-none">
         <RefreshCw className="animate-spin text-indigo-600" size={32} />
         <span className="text-sm font-semibold text-gray-500 animate-pulse">Retrieving System Rules...</span>
       </div>
@@ -155,7 +155,7 @@ export default function SystemSettingsPanel() {
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-150 p-8 shadow-sm space-y-6">
+    <div className="bg-white rounded-none border border-gray-150 p-8 shadow-none space-y-6">
       <div>
         <h3 className="text-lg font-bold text-gray-900">Academic Project Constraints</h3>
         <p className="text-xs text-gray-500 mt-1">Configure global validation boundaries, student limit caps, and duration bounds.</p>
@@ -164,7 +164,7 @@ export default function SystemSettingsPanel() {
       <form onSubmit={handleSave} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Section 1: Project Period */}
-          <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-100/50 space-y-4">
+          <div className="bg-indigo-50/50 rounded-none p-6 border border-indigo-100/50 space-y-4">
             <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5 border-b border-indigo-100 pb-2">
               <Calendar size={14} className="text-indigo-600" />
               <span>Project Period Boundaries</span>
@@ -178,7 +178,7 @@ export default function SystemSettingsPanel() {
                   name="project_start_date"
                   value={settings.project_start_date}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                   required
                 />
               </div>
@@ -190,7 +190,7 @@ export default function SystemSettingsPanel() {
                   name="project_end_date"
                   value={settings.project_end_date}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                   required
                 />
               </div>
@@ -198,7 +198,7 @@ export default function SystemSettingsPanel() {
           </div>
 
           {/* Section 2: Student Capacities & Limits */}
-          <div className="bg-purple-50/50 rounded-2xl p-6 border border-purple-100/50 space-y-4">
+          <div className="bg-purple-50/50 rounded-none p-6 border border-purple-100/50 space-y-4">
             <h4 className="text-xs font-bold text-purple-950 uppercase tracking-wider flex items-center gap-1.5 border-b border-purple-100 pb-2">
               <Users size={14} className="text-purple-600" />
               <span>Enrollment & Mentorship Capacities</span>
@@ -213,7 +213,7 @@ export default function SystemSettingsPanel() {
                   value={settings.max_students_per_faculty}
                   onChange={handleChange}
                   min="1"
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white"
                   required
                 />
               </div>
@@ -224,7 +224,7 @@ export default function SystemSettingsPanel() {
                   name="allow_faculty_edit"
                   value={settings.allow_faculty_edit || 'true'}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white"
                   required
                 >
                   <option value="true">Yes, allow faculties to edit records</option>
@@ -238,7 +238,7 @@ export default function SystemSettingsPanel() {
                   name="enable_faculty_certificate_tab"
                   value={settings.enable_faculty_certificate_tab || 'false'}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white"
                   required
                 >
                   <option value="true">Yes, show hidden Certificates tab for faculties</option>
@@ -249,7 +249,7 @@ export default function SystemSettingsPanel() {
           </div>
 
           {/* Section 3: Durations */}
-          <div className="bg-amber-50/50 rounded-2xl p-6 border border-amber-100/50 space-y-4 md:col-span-2">
+          <div className="bg-amber-50/50 rounded-none p-6 border border-amber-100/50 space-y-4 md:col-span-2">
             <h4 className="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5 border-b border-amber-100 pb-2">
               <Clock size={14} className="text-amber-600" />
               <span>Duration Verification Boundary</span>
@@ -264,11 +264,11 @@ export default function SystemSettingsPanel() {
                   value={settings.min_duration_days}
                   onChange={handleChange}
                   min="1"
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white"
                   required
                 />
               </div>
-              <div className="flex gap-2 p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-800 leading-relaxed">
+              <div className="flex gap-2 p-3 bg-amber-50 rounded-none border border-amber-100 text-xs text-amber-800 leading-relaxed">
                 <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
                 <p>
                   Any submitted internships with durations less than this setting will be blocked during registration and modification. (Default is 28 days / 4 weeks).
@@ -282,7 +282,7 @@ export default function SystemSettingsPanel() {
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/10 transition-all disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold rounded-none shadow-none shadow-none-500/10 transition-all disabled:opacity-50 cursor-pointer"
           >
             {saving ? (
               <>
@@ -300,7 +300,7 @@ export default function SystemSettingsPanel() {
       </form>
 
       {/* Dynamic SMTP Configuration Section */}
-      <div className="bg-white rounded-3xl border border-gray-150 p-8 shadow-sm space-y-6 mt-6">
+      <div className="bg-white rounded-none border border-gray-150 p-8 shadow-none space-y-6 mt-6">
         <div>
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Mail className="text-indigo-600" size={20} />
@@ -311,7 +311,7 @@ export default function SystemSettingsPanel() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* SMTP Config Form */}
-          <form onSubmit={handleSaveSmtp} className="lg:col-span-2 bg-indigo-50/30 rounded-2xl p-6 border border-indigo-100/50 space-y-4">
+          <form onSubmit={handleSaveSmtp} className="lg:col-span-2 bg-indigo-50/30 rounded-none p-6 border border-indigo-100/50 space-y-4">
             <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5 border-b border-indigo-100 pb-2">
               <ShieldCheck size={14} className="text-indigo-600" />
               <span>Mail Server Credentials</span>
@@ -326,7 +326,7 @@ export default function SystemSettingsPanel() {
                   value={smtpSettings.smtp_host}
                   onChange={(e) => setSmtpSettings({ ...smtpSettings, smtp_host: e.target.value })}
                   placeholder="e.g. smtp.gmail.com"
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                   required
                 />
               </div>
@@ -339,7 +339,7 @@ export default function SystemSettingsPanel() {
                   value={smtpSettings.smtp_port}
                   onChange={(e) => setSmtpSettings({ ...smtpSettings, smtp_port: e.target.value })}
                   placeholder="e.g. 465 or 587"
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                   required
                 />
               </div>
@@ -352,7 +352,7 @@ export default function SystemSettingsPanel() {
                   value={smtpSettings.smtp_username}
                   onChange={(e) => setSmtpSettings({ ...smtpSettings, smtp_username: e.target.value })}
                   placeholder="e.g. sender@nitt.edu"
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                   required
                 />
               </div>
@@ -365,7 +365,7 @@ export default function SystemSettingsPanel() {
                   value={smtpSettings.smtp_password}
                   onChange={(e) => setSmtpSettings({ ...smtpSettings, smtp_password: e.target.value })}
                   placeholder={smtpSettings.has_password ? '********' : 'Enter password'}
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                   required={!smtpSettings.has_password}
                 />
               </div>
@@ -376,7 +376,7 @@ export default function SystemSettingsPanel() {
                   name="smtp_secure"
                   value={smtpSettings.smtp_secure}
                   onChange={(e) => setSmtpSettings({ ...smtpSettings, smtp_secure: e.target.value })}
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                   required
                 >
                   <option value="ssl">SSL (Recommended for Port 465)</option>
@@ -391,7 +391,7 @@ export default function SystemSettingsPanel() {
                 type="button"
                 onClick={handleResetSmtp}
                 disabled={savingSmtp || (!smtpSettings.smtp_host && !smtpSettings.smtp_username && !smtpSettings.has_password)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-750 text-xs font-bold rounded-xl shadow-sm border border-gray-250 transition-all disabled:opacity-40 cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-750 text-xs font-bold rounded-none shadow-none border border-gray-250 transition-all disabled:opacity-40 cursor-pointer"
               >
                 <RotateCcw size={12} />
                 <span>Reset Settings</span>
@@ -399,7 +399,7 @@ export default function SystemSettingsPanel() {
               <button
                 type="submit"
                 disabled={savingSmtp}
-                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold rounded-none shadow-none transition-all disabled:opacity-50 cursor-pointer"
               >
                 {savingSmtp ? (
                   <>
@@ -417,7 +417,7 @@ export default function SystemSettingsPanel() {
           </form>
 
           {/* SMTP Test Card */}
-          <div className="bg-purple-50/30 rounded-2xl p-6 border border-purple-100/50 flex flex-col justify-between space-y-4">
+          <div className="bg-purple-50/30 rounded-none p-6 border border-purple-100/50 flex flex-col justify-between space-y-4">
             <div>
               <h4 className="text-xs font-bold text-purple-950 uppercase tracking-wider flex items-center gap-1.5 border-b border-purple-100 pb-2">
                 <Mail size={14} className="text-purple-600" />
@@ -436,7 +436,7 @@ export default function SystemSettingsPanel() {
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
                   placeholder="recipient@example.com"
-                  className="w-full rounded-xl border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white"
+                  className="w-full rounded-none border border-gray-300 p-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white"
                   required
                 />
               </div>
@@ -444,7 +444,7 @@ export default function SystemSettingsPanel() {
               <button
                 type="submit"
                 disabled={testingSmtp}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-xs font-bold rounded-none shadow-none transition-all disabled:opacity-50 cursor-pointer"
               >
                 {testingSmtp ? (
                   <>

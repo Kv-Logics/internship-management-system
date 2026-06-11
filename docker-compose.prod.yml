@@ -22,9 +22,9 @@ services:
     restart: unless-stopped
     env_file: .env.production
     volumes:
-      - backend_signatures:/app/signatures
-      - backend_certificates:/app/generated_certificates
-      - backend_uploads:/app/uploads
+      - ./signatures:/app/signatures:z
+      - ./generated_certificates:/app/generated_certificates:z
+      - ./uploads:/app/uploads:z
     depends_on:
       db:
         condition: service_healthy
@@ -64,6 +64,3 @@ networks:
 
 volumes:
   pgdata:
-  backend_signatures:
-  backend_certificates:
-  backend_uploads:

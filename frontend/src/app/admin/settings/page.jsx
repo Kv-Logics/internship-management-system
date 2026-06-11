@@ -26,11 +26,10 @@ export default function AdminSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-indigo-900 to-indigo-950 p-6 rounded-3xl border border-indigo-850 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+      <div className="bg-white p-6 border border-gray-300 text-gray-900 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        
         <div className="z-10">
           <h2 className="text-2xl font-extrabold tracking-tight">System Settings</h2>
-          <p className="text-xs text-indigo-200 mt-1">Configure global boundaries for date validations and mentor capacities.</p>
         </div>
       </div>
       <SystemSettingsPanel />

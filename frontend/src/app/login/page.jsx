@@ -98,12 +98,12 @@ export default function Login() {
       <div className="z-10 w-full max-w-[400px] bg-white rounded-[2rem] shadow-2xl p-8 md:p-10 flex flex-col items-center">
         
         {/* Logo in an app icon style box */}
-        <div className="mx-auto mb-5 h-16 w-16 rounded-2xl bg-stone-100 border border-stone-200 flex items-center justify-center">
-          <img src={nitlogo.src} alt="NITT Logo" className="h-11 w-11 object-contain mix-blend-multiply" />
+        <div className="mx-auto mb-5 bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center" style={{ width: '120px', height: '120px', borderRadius: '20px' }}>
+          <img src={nitlogo.src} alt="NITT Logo" className="mix-blend-multiply" style={{ width: '110%', height: '110%', objectFit: 'contain' }} />
         </div>
         
         {/* Title & Subtitle */}
-        <h1 className="text-xl font-bold text-gray-900 mb-1.5">NITT Auth</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-1.5 text-center leading-tight">National Institute of Technology, Tiruchirappalli</h1>
         <p className="text-xs text-gray-500 mb-8">Sign in with your institute email</p>
         
         {/* Form area */}
@@ -198,7 +198,7 @@ export default function Login() {
       
       {/* Footer Text at the bottom of the screen */}
       <div className="absolute bottom-8 text-[11px] text-gray-300/80 font-medium tracking-wide">
-        NIT Tiruchirappalli Central Authentication
+        National Institute of Technology Tiruchirappalli Central Authentication
       </div>
     </div>
   );

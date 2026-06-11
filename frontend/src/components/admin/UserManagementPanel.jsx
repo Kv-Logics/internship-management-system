@@ -87,7 +87,7 @@ export default function UserManagementPanel() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-none shadow-none border border-gray-100 overflow-hidden">
       <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
         <div>
           <h3 className="text-lg font-bold text-gray-800">Provision New User</h3>
@@ -106,7 +106,7 @@ export default function UserManagementPanel() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="user@nitt.edu"
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
+                className="w-full border-gray-300 rounded-none shadow-none focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
               />
             </div>
             <div>
@@ -118,7 +118,7 @@ export default function UserManagementPanel() {
                 value={formData.faculty_name}
                 onChange={handleChange}
                 placeholder="Dr. John Doe"
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
+                className="w-full border-gray-300 rounded-none shadow-none focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
               />
             </div>
             <div>
@@ -128,7 +128,7 @@ export default function UserManagementPanel() {
                 required
                 value={formData.department}
                 onChange={handleChange}
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
+                className="w-full border-gray-300 rounded-none shadow-none focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
               >
                 <option value="" disabled>Select Department</option>
                 {departments.map((dept, idx) => (
@@ -142,7 +142,7 @@ export default function UserManagementPanel() {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
+                className="w-full border-gray-300 rounded-none shadow-none focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
               >
                 <option value="faculty">Faculty</option>
                 <option value="dean">Dean (R&C)</option>
@@ -155,7 +155,7 @@ export default function UserManagementPanel() {
             <button
               type="submit"
               disabled={loading}
-              className={`px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all ${
+              className={`px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-none shadow-none transition-all ${
                 loading ? 'opacity-70 cursor-not-allowed' : ''
               }`}
             >
@@ -180,13 +180,13 @@ export default function UserManagementPanel() {
               value={deleteEmail}
               onChange={(e) => setDeleteEmail(e.target.value)}
               placeholder="user@nitt.edu"
-              className="w-full border-red-200 rounded-lg shadow-sm focus:border-red-500 focus:ring-red-500 p-2 border bg-white"
+              className="w-full border-red-200 rounded-none shadow-none focus:border-red-500 focus:ring-red-500 p-2 border bg-white"
             />
           </div>
           <button
             type="submit"
             disabled={deleting}
-            className={`px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-all whitespace-nowrap ${
+            className={`px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-none shadow-none transition-all whitespace-nowrap ${
               deleting ? 'opacity-70 cursor-not-allowed' : ''
             }`}
           >

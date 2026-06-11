@@ -42,8 +42,8 @@ export default function DeanFacultyProfile() {
       </button>
 
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+      <div className="bg-white rounded-none border border-gray-100 shadow-none p-6 flex items-center gap-4">
+        <div className="w-14 h-14 rounded-none bg-indigo-100 flex items-center justify-center flex-shrink-0">
           <User size={26} className="text-indigo-500" />
         </div>
         <div>
@@ -51,7 +51,7 @@ export default function DeanFacultyProfile() {
             {faculty ? `Dr. ${faculty.faculty_name}` : 'Faculty Profile'}
           </h1>
           {faculty && <p className="text-sm text-gray-500 mt-0.5">{faculty.email}</p>}
-          <span className="inline-block mt-1 text-xs font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
+          <span className="inline-block mt-1 text-xs font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-none">
             {internships.length} intern{internships.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -63,11 +63,11 @@ export default function DeanFacultyProfile() {
         {isLoading ? (
           <p className="text-sm text-gray-400">Loading...</p>
         ) : internships.length === 0 ? (
-          <p className="text-sm text-gray-400 bg-white rounded-xl border border-gray-100 p-5">No interns assigned yet.</p>
+          <p className="text-sm text-gray-400 bg-white rounded-none border border-gray-100 p-5">No interns assigned yet.</p>
         ) : (
           <ul className="space-y-3">
             {internships.map((internship) => (
-              <li key={internship.internship_id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 space-y-2">
+              <li key={internship.internship_id} className="bg-white rounded-none border border-gray-100 shadow-none px-5 py-4 space-y-2">
                 {/* Intern Name & College */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export default function DeanFacultyProfile() {
                       </span>
                     </div>
                   </div>
-                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize flex-shrink-0 ${statusColor(internship.status)}`}>
+                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-none capitalize flex-shrink-0 ${statusColor(internship.status)}`}>
                     {internship.status || 'ongoing'}
                   </span>
                 </div>
@@ -111,9 +111,9 @@ export default function DeanFacultyProfile() {
                           href={docUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center text-[10px] text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 border border-emerald-150 px-2 py-0.5 rounded-lg transition-all"
+                          className="inline-flex items-center text-[10px] text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 border border-emerald-150 px-2 py-0.5 rounded-none transition-all"
                         >
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                          <span className="w-1.5 h-1.5 rounded-none bg-emerald-500 mr-1.5"></span>
                           <span>{doc.document_type.toUpperCase()}</span>
                         </a>
                       );

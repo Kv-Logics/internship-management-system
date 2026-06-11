@@ -11,6 +11,7 @@ export default function DepartmentSelectionModal() {
   const [selected, setSelected] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [skipped, setSkipped] = useState(false);
 
   useEffect(() => {
     const fetchDepts = async () => {
@@ -29,7 +30,7 @@ export default function DepartmentSelectionModal() {
     }
   }, [user]);
 
-  if (!user || user.role !== 'faculty' || user.department) {
+  if (!user || user.role !== 'faculty' || user.department || skipped) {
     return null;
   }
 
@@ -57,9 +58,9 @@ export default function DepartmentSelectionModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
+      <div className="bg-white rounded-none w-full max-w-lg shadow-none overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 p-6 text-white text-center">
-          <div className="inline-flex bg-white/20 p-3 rounded-full mb-3">
+          <div className="inline-flex bg-white/20 p-3 rounded-none mb-3">
             <Building2 size={32} />
           </div>
           <h2 className="text-2xl font-bold">Complete Your Profile</h2>
@@ -76,11 +77,11 @@ export default function DepartmentSelectionModal() {
               placeholder="Search department..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-none text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
             />
           </div>
 
-          <div className="h-64 overflow-y-auto border border-gray-100 rounded-xl bg-gray-50/50 p-2 space-y-1">
+          <div className="h-64 overflow-y-auto border border-gray-100 rounded-none bg-gray-50/50 p-2 space-y-1">
             {loading ? (
               <div className="flex justify-center items-center h-full text-indigo-500">
                 <Loader2 className="animate-spin mr-2" size={24} />
@@ -89,11 +90,11 @@ export default function DepartmentSelectionModal() {
             ) : filteredDepts.length > 0 ? (
               filteredDepts.map((dept, idx) => (
                 <button
-                  key={idx}
+                   key={idx}
                   onClick={() => setSelected(dept)}
-                  className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                  className={`w-full text-left px-4 py-3 rounded-none text-sm font-medium transition-all ${
                     selected === dept 
-                      ? 'bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-sm' 
+                      ? 'bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-none' 
                       : 'text-gray-700 hover:bg-white border border-transparent hover:border-gray-200'
                   }`}
                 >
@@ -110,9 +111,16 @@ export default function DepartmentSelectionModal() {
 
         <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
           <button
+            type="button"
+            onClick={() => setSkipped(true)}
+            className="mr-3 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-none transition-all active:scale-95"
+          >
+            Skip for Now
+          </button>
+          <button
             onClick={handleSubmit}
             disabled={!selected || submitting}
-            className="flex items-center space-x-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-md active:scale-95"
+            className="flex items-center space-x-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-bold rounded-none transition-all shadow-none active:scale-95"
           >
             {submitting ? (
               <>

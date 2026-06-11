@@ -29,7 +29,7 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
 
   return (
     <div className="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-      <div className="bg-white rounded-3xl w-full max-w-md border border-gray-200 overflow-hidden shadow-2xl animate-scaleUp">
+      <div className="bg-white rounded-none w-full max-w-md border border-gray-200 overflow-hidden shadow-none animate-scaleUp">
         
         {/* Header */}
         <div className={`p-5 text-white flex justify-between items-center bg-gradient-to-r ${
@@ -52,7 +52,7 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
           </div>
           <button 
             onClick={onClose} 
-            className="p-1.5 hover:bg-white/10 rounded-lg text-white/80 hover:text-white transition-all cursor-pointer"
+            className="p-1.5 hover:bg-white/10 rounded-none text-white/80 hover:text-white transition-all cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -71,7 +71,7 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
               </p>
               <textarea
                 autoFocus
-                className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-xs font-semibold transition-all h-24 resize-none"
+                className="block w-full px-4 py-3 border border-slate-200 rounded-none bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-xs font-semibold transition-all h-24 resize-none"
                 placeholder="e.g. Transaction number does not match banking records, or incorrect payment amount."
                 value={declineReason}
                 onChange={(e) => setDeclineReason(e.target.value)}
@@ -93,12 +93,12 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
               
               {/* Admin preview highlight box */}
               {isAdmin && txn.trim() && (
-                <div className="bg-emerald-50/50 border border-emerald-150 p-3.5 rounded-xl flex items-center justify-between mb-3.5 animate-fadeIn">
+                <div className="bg-emerald-50/50 border border-emerald-150 p-3.5 rounded-none flex items-center justify-between mb-3.5 animate-fadeIn">
                   <div>
                     <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider block">Submitted Reference</span>
                     <span className="text-sm font-mono font-black text-emerald-900">{txn}</span>
                   </div>
-                  <div className="bg-emerald-500/10 p-1.5 rounded-lg">
+                  <div className="bg-emerald-500/10 p-1.5 rounded-none">
                     <CheckCircle2 className="text-emerald-600 h-5 w-5" />
                   </div>
                 </div>
@@ -108,7 +108,7 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
                 <input
                   type="text"
                   autoFocus
-                  className="block w-full px-4 py-3 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs font-semibold transition-all font-mono"
+                  className="block w-full px-4 py-3 border border-slate-200 rounded-none leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs font-semibold transition-all font-mono"
                   placeholder="e.g. TXN987654321"
                   value={txn}
                   onChange={(e) => setTxn(e.target.value)}
@@ -126,7 +126,7 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
                 <button
                   type="button"
                   onClick={() => setDeclineMode(false)}
-                  className="flex items-center space-x-1 px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 transition-all cursor-pointer"
+                  className="flex items-center space-x-1 px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-300 rounded-none text-xs font-bold text-gray-700 transition-all cursor-pointer"
                 >
                   <ArrowLeft size={13} />
                   <span>Back</span>
@@ -134,7 +134,7 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
                 <button
                   type="submit"
                   disabled={!declineReason.trim()}
-                  className="flex items-center space-x-1.5 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all"
+                  className="flex items-center space-x-1.5 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-none text-xs font-bold shadow-none cursor-pointer transition-all"
                 >
                   <AlertTriangle size={13} />
                   <span>Confirm Decline</span>
@@ -146,7 +146,7 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 transition-all cursor-pointer"
+                  className="px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-300 rounded-none text-xs font-bold text-gray-700 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -155,7 +155,7 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
                     <button
                       type="button"
                       onClick={() => setDeclineMode(true)}
-                      className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-bold text-rose-700 transition-all cursor-pointer"
+                      className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-none text-xs font-bold text-rose-700 transition-all cursor-pointer"
                     >
                       Decline
                     </button>
@@ -163,7 +163,7 @@ export default function TransactionInputModal({ isOpen, onClose, onSubmit, initi
                   <button
                     type="submit"
                     disabled={!txn.trim()}
-                    className={`flex items-center space-x-1.5 px-5 py-2.5 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all ${
+                    className={`flex items-center space-x-1.5 px-5 py-2.5 disabled:opacity-50 text-white rounded-none text-xs font-bold shadow-none cursor-pointer transition-all ${
                       isAdmin 
                         ? 'bg-emerald-600 hover:bg-emerald-700' 
                         : 'bg-indigo-600 hover:bg-indigo-700'

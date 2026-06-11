@@ -108,26 +108,23 @@ export default function CertificateEmailPortal() {
     <div className="space-y-6">
       
       {/* Header Panel */}
-      <div className="bg-gradient-to-r from-indigo-900 to-indigo-950 p-6 rounded-3xl border border-indigo-850 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+      <div className="bg-white p-6 border border-gray-300 text-gray-900 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        
         <div className="z-10">
           <h2 className="text-2xl font-extrabold tracking-tight">Certificate Delivery Portal</h2>
-          <p className="text-xs text-indigo-200 mt-1">
-            Dispatch digital completion certificates to students whose billing is cleared and payments verified.
-          </p>
         </div>
         <div className="z-10 flex flex-col sm:flex-row gap-3">
           <button 
             onClick={handleBulkDownload}
             disabled={isDownloading || counts.pending + counts.sent === 0}
-            className="flex items-center space-x-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 border border-emerald-500/50 rounded-xl text-xs font-semibold tracking-wider transition-all"
+            className="flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 border border-emerald-600 rounded-none text-xs font-semibold text-white transition-all cursor-pointer"
           >
             <Download size={14} className={isDownloading ? 'animate-bounce' : ''} />
             <span>Bulk ZIP Download</span>
           </button>
           <button 
             onClick={refreshList} 
-            className="flex items-center space-x-1.5 px-4 py-2.5 bg-white/10 hover:bg-white/15 active:bg-white/20 border border-white/10 rounded-xl text-xs font-semibold tracking-wider transition-all"
+            className="flex items-center space-x-1.5 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded-none text-xs font-semibold text-gray-700 transition-all cursor-pointer"
           >
             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
             <span>Sync Certificates</span>
@@ -136,15 +133,15 @@ export default function CertificateEmailPortal() {
       </div>
 
       {/* Filter and Search Row */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-2xl border border-gray-150 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-none border border-gray-150 shadow-none">
         
         {/* Sub Tabs */}
-        <div className="flex bg-gray-100 p-1 rounded-xl w-full md:w-auto border border-gray-200 shadow-inner gap-1">
+        <div className="flex bg-gray-100 p-1 rounded-none w-full md:w-auto border border-gray-200 shadow-none gap-1">
           <button
             onClick={() => setActiveTab('pending')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all w-full md:w-auto justify-center ${
+            className={`flex items-center space-x-1.5 px-4 py-2 rounded-none text-xs font-bold transition-all w-full md:w-auto justify-center ${
               activeTab === 'pending' 
-                ? 'bg-indigo-600 text-white shadow-md' 
+                ? 'bg-indigo-600 text-white shadow-none' 
                 : 'text-gray-500 hover:text-indigo-600'
             }`}
           >
@@ -153,9 +150,9 @@ export default function CertificateEmailPortal() {
           </button>
           <button
             onClick={() => setActiveTab('sent')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all w-full md:w-auto justify-center ${
+            className={`flex items-center space-x-1.5 px-4 py-2 rounded-none text-xs font-bold transition-all w-full md:w-auto justify-center ${
               activeTab === 'sent' 
-                ? 'bg-emerald-600 text-white shadow-md' 
+                ? 'bg-emerald-600 text-white shadow-none' 
                 : 'text-gray-500 hover:text-emerald-600'
             }`}
           >
@@ -171,7 +168,7 @@ export default function CertificateEmailPortal() {
           </div>
           <input
             type="text"
-            className="block w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs font-semibold transition-all"
+            className="block w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-none leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs font-semibold transition-all"
             placeholder="Search by student or domain..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -181,7 +178,7 @@ export default function CertificateEmailPortal() {
       </div>
 
       {/* Main Table */}
-      <div className="bg-white rounded-3xl border border-gray-150 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-none border border-gray-150 shadow-none overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-150">
             <thead className="bg-gray-50/75">
@@ -200,7 +197,7 @@ export default function CertificateEmailPortal() {
                 <tr>
                   <td colSpan={user?.role === 'faculty' ? 4 : 5} className="text-center py-12">
                     <div className="flex flex-col items-center space-y-2">
-                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
+                      <div className="h-8 w-8 animate-spin rounded-none border-4 border-indigo-600 border-t-transparent"></div>
                       <span className="text-xs text-gray-400">Loading delivery listings...</span>
                     </div>
                   </td>
@@ -211,7 +208,7 @@ export default function CertificateEmailPortal() {
                 <tr key={item.internship_id} className="hover:bg-indigo-50/5 transition-colors">
                   <td className="px-6 py-5 whitespace-nowrap">
                     <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 bg-indigo-100/70 text-indigo-700 flex items-center justify-center rounded-xl shrink-0">
+                      <div className="h-10 w-10 bg-indigo-100/70 text-indigo-700 flex items-center justify-center rounded-none shrink-0">
                         <User size={18} />
                       </div>
                       <div>
@@ -236,7 +233,7 @@ export default function CertificateEmailPortal() {
                   <td className="px-6 py-5 whitespace-nowrap">
                     {item.certificate?.certificate_number ? (
                       <div className="flex flex-col space-y-0.5">
-                        <span className="text-xs font-mono font-bold text-indigo-900 bg-indigo-50 p-1 px-1.5 rounded w-max border border-indigo-150">
+                        <span className="text-xs font-mono font-bold text-indigo-900 bg-indigo-50 p-1 px-1.5 rounded-none w-max border border-indigo-150">
                           {item.certificate.certificate_number}
                         </span>
                         <span className="text-[9px] text-gray-450">Generated</span>
@@ -249,13 +246,13 @@ export default function CertificateEmailPortal() {
                     {activeTab === 'pending' ? (
                       <button
                         onClick={(e) => handleSendEmail(item, e)}
-                        className="flex items-center space-x-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow transition-all cursor-pointer"
+                        className="flex items-center space-x-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-none font-bold shadow-none transition-all cursor-pointer"
                       >
                         <Send size={12} />
                         <span>Send Certificate</span>
                       </button>
                     ) : (
-                      <span className="inline-flex items-center text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full border border-emerald-150">
+                      <span className="inline-flex items-center text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-0.5 rounded-none border border-emerald-150">
                         Email Dispatched
                       </span>
                     )}

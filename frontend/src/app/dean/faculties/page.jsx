@@ -36,13 +36,13 @@ export default function DeanFacultyList() {
           placeholder="Search faculty by name..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-none bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           autoFocus
         />
       </div>
 
       {/* List */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-none border border-gray-100 shadow-none overflow-hidden">
         {isLoading ? (
           <p className="text-sm text-gray-400 p-6">Loading...</p>
         ) : filtered.length === 0 ? (
@@ -56,7 +56,7 @@ export default function DeanFacultyList() {
                   className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-indigo-50 transition-colors text-left group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-none bg-indigo-100 flex items-center justify-center flex-shrink-0">
                       <User size={15} className="text-indigo-600" />
                     </div>
                     <div>

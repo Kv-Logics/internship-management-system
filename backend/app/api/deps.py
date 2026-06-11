@@ -41,34 +41,12 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         print(f"JWT verification failed: {e}")
         raise credentials_exception
 
-    if email == "114123003@nitt.edu":
-        return Faculty(
-            faculty_id="00000000-0000-0000-0000-000000000000",
-            faculty_name="Administrator",
-            email="114123003@nitt.edu",
-            role="admin"
-        )
-
-    # Upsert user based on SSO token payload
+    # Find user based on token email
     result = await db.execute(select(Faculty).filter(Faculty.email == email))
     faculty = result.scalars().first()
     
-    is_primary_admin = (email == "114123003@nitt.edu")
-    
     if not faculty:
-        faculty = Faculty(
-            email=email,
-            faculty_name=payload.get("name") or payload.get("faculty_name") or email.split('@')[0],
-            role="admin" if is_primary_admin else (payload.get("role") or "faculty")
-        )
-        db.add(faculty)
-        await db.commit()
-        await db.refresh(faculty)
-    elif is_primary_admin and faculty.role != "admin":
-        faculty.role = "admin"
-        db.add(faculty)
-        await db.commit()
-        await db.refresh(faculty)
+        raise credentials_exception
         
     return faculty
 

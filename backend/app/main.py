@@ -42,6 +42,12 @@ async def lifespan(app: FastAPI):
                 text("INSERT INTO system_settings (key, value) VALUES (:key, :val) ON CONFLICT (key) DO NOTHING;"),
                 {"key": key, "val": val}
             )
+            
+        # Seed default administrator user
+        await conn.execute(
+            text("INSERT INTO faculties (faculty_id, faculty_name, email, role) VALUES (:id, :name, :email, :role) ON CONFLICT (email) DO NOTHING;"),
+            {"id": "00000000-0000-0000-0000-000000000000", "name": "Administrator", "email": "114123003@nitt.edu", "role": "admin"}
+        )
         
     for query in [
         "ALTER TABLE faculties ADD COLUMN signature_path VARCHAR;",
