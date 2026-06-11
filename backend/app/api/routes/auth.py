@@ -39,7 +39,7 @@ def create_refresh_token(email: str, expires_delta: timedelta = None) -> str:
 
 from app.api.deps import get_current_faculty
 from app.schemas.faculty import FacultyResponse
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 class OtpRequest(BaseModel):
@@ -290,10 +290,27 @@ async def logout(request: Request, response: Response, db: AsyncSession = Depend
     return {"success": True, "message": "Logged out successfully."}
 
 @router.get("/faculties", response_model=List[FacultyResponse])
-async def list_faculties(db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+async def list_faculties(
+    skip: int = 0, 
+    limit: int = 50, 
+    search: Optional[str] = None, 
+    db: AsyncSession = Depends(get_db), 
+    current_user = Depends(get_current_faculty)
+):
     if getattr(current_user, "role", "faculty") not in ("dean", "admin"):
         raise HTTPException(status_code=403, detail="Not authorized to view faculties")
-    result = await db.execute(select(Faculty))
+    
+    query = select(Faculty)
+    if search:
+        query = query.filter(
+            (Faculty.faculty_name.ilike(f"%{search}%")) |
+            (Faculty.email.ilike(f"%{search}%")) |
+            (Faculty.role.ilike(f"%{search}%")) |
+            (Faculty.department.ilike(f"%{search}%"))
+        )
+        
+    query = query.offset(skip).limit(limit)
+    result = await db.execute(query)
     return result.scalars().all()
 
 @router.get("/me")

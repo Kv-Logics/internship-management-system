@@ -1,7 +1,19 @@
 import React from 'react';
 import { Search, Mail, Trash2, Eye, User } from 'lucide-react';
 
-export default function FacultyDirectory({ search, setSearch, filteredFaculties, internships, setSelectedFaculty, handleDeleteFaculty, user, deletingId }) {
+export default function FacultyDirectory({ 
+  search, 
+  setSearch, 
+  filteredFaculties, 
+  internships, 
+  setSelectedFaculty, 
+  handleDeleteFaculty, 
+  user, 
+  deletingId,
+  hasMore,
+  onLoadMore,
+  loadingMore
+}) {
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Search bar */}
@@ -100,6 +112,19 @@ export default function FacultyDirectory({ search, setSearch, filteredFaculties,
           </table>
         </div>
       </div>
+
+      {/* View More Button */}
+      {hasMore && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-none text-xs font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center space-x-2 cursor-pointer"
+          >
+            {loadingMore ? 'Loading...' : 'View More Records'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

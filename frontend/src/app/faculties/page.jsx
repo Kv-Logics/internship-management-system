@@ -15,7 +15,10 @@ export default function FacultyDatabase() {
   const [faculties, setFaculties] = useState([]);
   const [internships, setInternships] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState('');
+  const [hasMore, setHasMore] = useState(true);
+  const [skip, setSkip] = useState(0);
   
   // Selected Faculty details view state
   const [selectedFaculty, setSelectedFaculty] = useState(null);
@@ -33,28 +36,63 @@ export default function FacultyDatabase() {
     if (user.role !== 'admin' && user.role !== 'dean') {
       toast.error('Access Denied: Only system administrators can access the database panel.');
       router.push('/');
-    } else {
-      fetchDatabase();
     }
   }, [user, authLoading, router]);
 
-  const fetchDatabase = async () => {
-    setLoading(true);
+  const fetchDatabase = async (reset = false, currentSearch = search) => {
+    const currentSkip = reset ? 0 : skip;
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    
     try {
-      // Fetch both faculties and all internships
-      const [facRes, internRes] = await Promise.all([
-        api.get('/auth/faculties'),
-        api.get('/internships/')
-      ]);
-      setFaculties(facRes.data);
-      setInternships(internRes.data);
+      const params = {
+        skip: currentSkip,
+        limit: 50
+      };
+      if (currentSearch.trim()) {
+        params.search = currentSearch.trim();
+      }
+      
+      const facRes = await api.get('/auth/faculties', { params });
+      const newFaculties = facRes.data;
+      
+      if (reset) {
+        setFaculties(newFaculties);
+        setSkip(newFaculties.length);
+      } else {
+        setFaculties(prev => [...prev, ...newFaculties]);
+        setSkip(prev => prev + newFaculties.length);
+      }
+      
+      setHasMore(newFaculties.length === 50);
+      
+      if (currentSkip === 0) {
+        const internRes = await api.get('/internships/');
+        setInternships(internRes.data);
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to load database records.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (user.role !== 'admin' && user.role !== 'dean') return;
+
+    const delayDebounceFn = setTimeout(() => {
+      fetchDatabase(true, search);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, user, authLoading]);
 
   const handleDeleteFaculty = async (facultyId, e) => {
     e.stopPropagation(); // Prevent opening detail view when deleting
@@ -130,12 +168,6 @@ export default function FacultyDatabase() {
     }
   };
 
-  const filteredFaculties = faculties.filter(fac => 
-    fac.faculty_name.toLowerCase().includes(search.toLowerCase()) ||
-    fac.email.toLowerCase().includes(search.toLowerCase()) ||
-    (fac.role || '').toLowerCase().includes(search.toLowerCase())
-  );
-
   const facultyInternships = internships.filter(item => (item.faculty_id || item.faculty?.faculty_id) === selectedFaculty?.faculty_id);
 
   if (loading && faculties.length === 0) {
@@ -173,7 +205,7 @@ export default function FacultyDatabase() {
         </div>
         <div className="z-10 flex items-center gap-3">
           <button 
-            onClick={fetchDatabase} 
+            onClick={() => fetchDatabase(true)} 
             className="flex items-center space-x-1 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded-none text-xs font-semibold text-gray-700 transition-all cursor-pointer"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -186,9 +218,17 @@ export default function FacultyDatabase() {
       </div>
 
       <FacultyDirectory 
-        search={search} setSearch={setSearch} filteredFaculties={filteredFaculties} 
-        internships={internships} setSelectedFaculty={setSelectedFaculty} 
-        handleDeleteFaculty={handleDeleteFaculty} user={user} deletingId={deletingId} 
+        search={search} 
+        setSearch={setSearch} 
+        filteredFaculties={faculties} 
+        internships={internships} 
+        setSelectedFaculty={setSelectedFaculty} 
+        handleDeleteFaculty={handleDeleteFaculty} 
+        user={user} 
+        deletingId={deletingId}
+        hasMore={hasMore}
+        onLoadMore={() => fetchDatabase(false)}
+        loadingMore={loadingMore}
       />
 
     </div>
