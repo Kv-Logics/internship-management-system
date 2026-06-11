@@ -253,9 +253,18 @@ export default function CertificateEmailPortal() {
                         <span>Send Certificate</span>
                       </button>
                     ) : (
-                      <span className="inline-flex items-center text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-0.5 rounded-none border border-emerald-150">
-                        Email Dispatched
-                      </span>
+                      <div className="flex flex-col space-y-1.5 items-start">
+                        <span className="inline-flex items-center text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-0.5 rounded-none border border-emerald-150">
+                          Email Dispatched
+                        </span>
+                        <button
+                          onClick={(e) => handleSendEmail(item, e)}
+                          className="flex items-center space-x-1 px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-250 text-indigo-700 rounded-none text-[10px] font-bold transition-all cursor-pointer w-max"
+                        >
+                          <Send size={10} />
+                          <span>Resend Cert</span>
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
