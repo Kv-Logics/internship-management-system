@@ -38,180 +38,162 @@ def generate_certificate_pdf(
     draw = ImageDraw.Draw(img)
 
     # ── Fonts ────────────────────────────────────────────────────────────────
-    # Priority: bundled fonts (project/fonts/) → Windows → Linux system fonts
     _base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-    _font_candidates = [
-        os.path.join(_base, "fonts", "timesbd.ttf"),                           # bundled (best — copy timesbd.ttf here)
-        "C:/Windows/Fonts/timesbd.ttf",                                        # Windows
-        "/usr/share/fonts/liberation/LiberationSerif-Bold.ttf",                # RHEL/CentOS
-        "/usr/share/fonts/dejavu/DejaVuSerif-Bold.ttf",                        # RHEL/CentOS
-        "/usr/share/fonts/google-noto/NotoSerif-Bold.ttf",                     # RHEL (noto)
-        "/usr/share/fonts/noto/NotoSerif-Bold.ttf",                            # RHEL (noto alt)
-        "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",       # Ubuntu/Debian
-        "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",               # Ubuntu/Debian
+    _bold_paths = [
+        os.path.join(_base, "fonts", "timesbd.ttf"),                          # bundled — guaranteed consistent
+        "C:/Windows/Fonts/timesbd.ttf",                                       # Windows local
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",              # Debian/Ubuntu Docker
+        "/usr/share/fonts/dejavu/DejaVuSerif-Bold.ttf",                       # RHEL/CentOS
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",      # Debian/Ubuntu
+        "/usr/share/fonts/liberation/LiberationSerif-Bold.ttf",               # RHEL/CentOS
     ]
-    _font_candidates_bold = _font_candidates
-    _font_candidates_verif = _font_candidates
+    _regular_paths = [
+        os.path.join(_base, "fonts", "times.ttf"),
+        "C:/Windows/Fonts/times.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSerif.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+        "/usr/share/fonts/liberation/LiberationSerif-Regular.ttf",
+    ]
 
-    font_bold = font_verif = None
-    for path in _font_candidates_bold:
-        try:
-            font_bold = ImageFont.truetype(path, 28)
-            break
-        except (IOError, OSError):
-            continue
-    for path in _font_candidates_verif:
-        try:
-            font_verif = ImageFont.truetype(path, 15)
-            break
-        except (IOError, OSError):
-            continue
-    if font_bold is None:
-        font_bold = ImageFont.load_default()
-    if font_verif is None:
-        font_verif = ImageFont.load_default()
+    def _load_font(paths, size):
+        for p in paths:
+            try:
+                return ImageFont.truetype(p, size)
+            except (IOError, OSError):
+                continue
+        return ImageFont.load_default()
+
+    font_bold    = _load_font(_bold_paths, 28)
+    font_regular = _load_font(_regular_paths, 28)
+    font_verif   = _load_font(_bold_paths, 15)
 
     DARK = (30, 41, 59, 255)
     GREY = (100, 116, 139, 255)
 
-    # ── Drawing helpers ───────────────────────────────────────────────────────
+    # ── Helpers ───────────────────────────────────────────────────────────────
     def _text_size(text, font):
         bb = draw.textbbox((0, 0), text, font=font)
         return bb[2] - bb[0], bb[3] - bb[1]
 
+    def _fit_font(text, field_w, base_size=28, min_size=10):
+        """Return a font scaled down until text fits within field_w pixels."""
+        for size in range(base_size, min_size - 1, -1):
+            f = _load_font(_bold_paths, size)
+            if _text_size(text, f)[0] <= field_w:
+                return f
+        return _load_font(_bold_paths, min_size)
+
     def draw_on_field(text, x_start, x_end, underline_y, font, fill=DARK):
-        """Centre text horizontally within [x_start, x_end] and sit it ON the underline."""
+        """Centre text in field, sitting 10px above the underline."""
         tw, th = _text_size(text, font)
-        cx = (x_start + x_end) // 2
-        x  = cx - tw // 2
-        y  = underline_y - th - 10         # 10 px breathing room above the line
+        x = (x_start + x_end) // 2 - tw // 2
+        y = underline_y - th - 10
         draw.text((x, y), text, font=font, fill=fill)
 
+    def draw_fitted(text, x_start, x_end, underline_y, base_size=28, fill=DARK):
+        """Draw text auto-scaled to fit within the field width."""
+        font = _fit_font(text, x_end - x_start, base_size)
+        draw_on_field(text, x_start, x_end, underline_y, font, fill)
+
     def draw_at_center(text, cx, underline_y, font, fill=DARK):
-        """Centre text on a fixed x-centre and sit it ON the underline."""
+        """Centre text on a fixed x and sit it 10px above the underline."""
         tw, th = _text_size(text, font)
         x = cx - tw // 2
         y = underline_y - th - 10
         draw.text((x, y), text, font=font, fill=fill)
 
-    # ── Field map (measured from the 1536×1024 template) ─────────────────────
-    #
-    #  All y-values are the TOP of the underline stroke.
-    #  x_start / x_end are the left/right extents of the blank field area.
-    #
-    #  Row              underline_y   x_start   x_end   notes
-    #  ───────────────  ───────────   ───────   ─────   ──────────────────────
-    #  Name             383           391       1165    after "Mr./Ms."
-    #  College          428           287       943     before "(Institute…)"
-    #  Date (start dd)  598           466       504     centre = 485
-    #  Date (start mm)  598           528       568     centre = 548
-    #  Date (start yy)  598           592       673     centre = 632
-    #  Date (end   dd)  598           708       747     centre = 727
-    #  Date (end   mm)  598           772       812     centre = 792
-    #  Date (end   yy)  598           836       927     centre = 881
-    #  Title line 1     679           248       1280
-    #  Title line 2     719           248       1280
-    #  Mentor           761           555       1100    after "Dr./Prof."
-    #  Bottom date dd   889           —         —       centre = 420
-    #  Bottom date mm   889           —         —       centre = 480
-    #  Bottom date yy   889           —         —       centre = 560
-
-    # 1. Verification ID — bottom center, below the decorative divider (y~932)
+    # ── 1. Verification ID — bottom center below decorative divider ───────────
     if certificate_number:
-        text = f"VERIFICATION ID: {certificate_number}"
-        tw, th = _text_size(text, font_verif)
-        draw.text((768 - tw // 2, 945), text, font=font_verif, fill=GREY)
+        vt = f"VERIFICATION ID: {certificate_number}"
+        vtw, _ = _text_size(vt, font_verif)
+        draw.text((768 - vtw // 2, 945), vt, font=font_verif, fill=GREY)
 
-    # Cover "(Institute/University Name)" pre-printed text on template
+    # ── 2. Cover pre-printed "(Institute/University Name)" ────────────────────
     draw.rectangle([930, 400, 1200, 440], fill=(255, 255, 255, 255))
 
-    # 2. Student name
-    draw_on_field(intern_name.title(), 391, 1165, 383, font_bold)
+    # ── 3. Intern name  (field x=391–1165, y=383) ────────────────────────────
+    draw_fitted(intern_name.strip().title(), 391, 1165, 383)
 
-    # 3. College / institute name
-    # Redraw the entire college underline as one continuous line x=287 to x=1332
-    # (avoids any gap between original template line and extension)
+    # ── 4. College name  (extended line x=287–1332, y=428) ───────────────────
     draw.line([(287, 428), (1332, 428)], fill=(14, 14, 14, 255), width=2)
-    draw_on_field(college_name.title(), 287, 1332, 428, font_bold)
+    draw_fitted(college_name.strip().title(), 287, 1332, 428)
 
-    # 3b. Department name — field: x=287 to 870, underline y=513
-    draw_on_field(domain, 287, 870, 513, font_bold)
+    # ── 5. Department  (extended line x=378–1332, y=513) ─────────────────────
+    draw.rectangle([970, 480, 1040, 525], fill=(255, 255, 255, 255))   # erase old "at"
+    draw.line([(970, 513), (1332, 513)], fill=(30, 41, 59, 255), width=2)
+    tw_at, th_at = _text_size("at", font_regular)
+    draw.text((1345, 513 - th_at - 10), "at", font=font_regular, fill=DARK)
+    draw_fitted(domain.strip(), 378, 1332, 513)
 
-    # 4. Dates ─────────────────────────────────────────────────────────────────
+    # ── 6. Dates ─────────────────────────────────────────────────────────────
     try:
-        sd = start_date.strftime('%d')
-        sm = start_date.strftime('%m')
-        sy = start_date.strftime('%Y')
-        ed = end_date.strftime('%d')
-        em = end_date.strftime('%m')
-        ey = end_date.strftime('%Y')
+        sd, sm, sy = start_date.strftime('%d'), start_date.strftime('%m'), start_date.strftime('%Y')
+        ed, em, ey = end_date.strftime('%d'),   end_date.strftime('%m'),   end_date.strftime('%Y')
     except Exception:
-        sd = sm = ""; sy = str(start_date)
-        ed = em = ""; ey = str(end_date)
+        sd = sm = ed = em = ""
+        sy = str(start_date)
+        ey = str(end_date)
 
-    # Start date slots
-    draw_at_center(sd, 485, 598, font_bold)
-    draw_at_center(sm, 548, 598, font_bold)
-    draw_at_center(sy, 632, 598, font_bold)
-    # End date slots
-    draw_at_center(ed, 727, 598, font_bold)
-    draw_at_center(em, 792, 598, font_bold)
-    draw_at_center(ey, 881, 598, font_bold)
+    for val, cx in [(sd, 485), (sm, 548), (sy, 632), (ed, 727), (em, 792), (ey, 881)]:
+        draw_at_center(val, cx, 598, font_bold)
 
-    # 5. Project / internship title (up to two lines)
-    MAX_CHARS = 55
-    if len(title) > MAX_CHARS:
-        words = title.split()
+    # ── 7. Internship title — pixel-width split into up to 2 lines ────────────
+    _tw = 1280 - 248
+    title_text = title.strip()
+    if _text_size(title_text, font_bold)[0] <= _tw:
+        draw_on_field(title_text, 248, 1280, 679, font_bold)
+    else:
+        # Split at the last word that fits on line 1
+        words = title_text.split()
         line1, line2 = "", ""
         for word in words:
             candidate = (line1 + " " + word).strip()
-            if len(candidate) <= MAX_CHARS:
+            if _text_size(candidate, font_bold)[0] <= _tw:
                 line1 = candidate
             else:
                 line2 = (line2 + " " + word).strip()
         draw_on_field(line1, 248, 1280, 679, font_bold)
         if line2:
-            draw_on_field(line2, 248, 1280, 719, font_bold)
-    else:
-        draw_on_field(title, 248, 1280, 679, font_bold)
+            # If line 2 still overflows, scale it down
+            l2_font = _fit_font(line2, _tw)
+            draw_on_field(line2, 248, 1280, 719, l2_font)
 
-    # 6. Mentor name (ensure "Dr." / "Prof." prefix)
+    # ── 8. Mentor name ────────────────────────────────────────────────────────
     mentor_display = mentor_name.strip()
-    if not any(mentor_display.startswith(p) for p in ("Dr.", "Dr ", "Prof.", "Prof ")):
+    _mentor_lower = mentor_display.lower()
+    if not any(_mentor_lower.startswith(p) for p in ("dr.", "dr ", "prof.", "prof ")):
         mentor_display = f"Dr. {mentor_display}"
-    draw_on_field(mentor_display, 555, 1100, 761, font_bold)
+    draw_fitted(mentor_display, 555, 1100, 761)
 
-    # 7. Issue date (bottom-left) — y=969, slots: dd c=224, mm c=276, yyyy c=352
-    draw_at_center(ed, 224, 969, font_bold)
-    draw_at_center(em, 276, 969, font_bold)
-    draw_at_center(ey, 352, 969, font_bold)
+    # ── 9. Bottom date (y=969) ────────────────────────────────────────────────
+    for val, cx in [(ed, 224), (em, 276), (ey, 352)]:
+        draw_at_center(val, cx, 969, font_bold)
 
-    # White out redundant "Signature: _______" lines
+    # ── 10. White out redundant "Signature: _______" lines ───────────────────
     draw.rectangle([100, 863, 650, 900], fill=(255, 255, 255, 255))
     draw.rectangle([850, 863, 1350, 900], fill=(255, 255, 255, 255))
 
-    # 8. Mentor signature — image sits ABOVE the line at y=825, centered x=258-601
+    # ── 11. Mentor signature image (above line y=825, center x=429) ───────────
     if faculty_signature_path and os.path.exists(faculty_signature_path):
         try:
             sig = Image.open(faculty_signature_path).convert("RGBA")
             sig.thumbnail((180, 45), Image.Resampling.LANCZOS)
             sw, sh = sig.size
-            # Place image above the line: bottom of image at y=820
             img.alpha_composite(sig, (int(429 - sw / 2), int(820 - sh)))
         except Exception as e:
             print("Faculty signature overlay failed:", e)
 
-    # 9. Dean signature — image sits ABOVE the line at y=825, centered x=959-1296
+    # ── 12. Dean signature image (above line y=825, center x=1127) ────────────
     if dean_signature_path and os.path.exists(dean_signature_path):
         try:
             sig = Image.open(dean_signature_path).convert("RGBA")
             sig.thumbnail((180, 45), Image.Resampling.LANCZOS)
             sw, sh = sig.size
-            # Place image above the line: bottom of image at y=820
             img.alpha_composite(sig, (int(1127 - sw / 2), int(820 - sh)))
         except Exception as e:
             print("Dean signature overlay failed:", e)
 
-    # Save
+    # ── Save ──────────────────────────────────────────────────────────────────
     img.convert("RGB").save(output_path, "PDF", resolution=100.0)
     return output_path

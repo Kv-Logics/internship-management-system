@@ -179,29 +179,18 @@ export default function Login() {
                 <span>{loading ? 'Verifying...' : 'Sign In'}</span>
               </button>
 
-              <div className="flex flex-col space-y-1 pt-2">
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={(e) => handleRequestOtp(e)}
-                  className="w-full py-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 disabled:opacity-50 transition-colors flex items-center justify-center cursor-pointer"
-                >
-                  {loading ? 'Sending...' : 'Resend verification code'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep('email');
-                    setOtp('');
-                    setError('');
-                    setMessage('');
-                  }}
-                  className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors flex items-center justify-center cursor-pointer"
-                >
-                  Change email address
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('email');
+                  setOtp('');
+                  setError('');
+                  setMessage('');
+                }}
+                className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors flex items-center justify-center cursor-pointer"
+              >
+                Change email address
+              </button>
             </form>
           )}
         </div>
