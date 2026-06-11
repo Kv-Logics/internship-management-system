@@ -21,7 +21,7 @@ export default function Dashboard() {
     if (user?.role === 'admin') {
       const fetchFaculties = async () => {
         try {
-          const res = await api.get('/auth/faculties');
+          const res = await api.get('/auth/faculties?limit=1000');
           setFacultiesCount(res.data.length);
         } catch (e) {
           console.error(e);

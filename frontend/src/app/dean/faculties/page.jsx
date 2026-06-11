@@ -12,7 +12,7 @@ export default function DeanFacultyList() {
   const { data: faculties = [], isLoading } = useQuery({
     queryKey: ['dean-faculties'],
     queryFn: async () => {
-      const res = await api.get('/auth/faculties');
+      const res = await api.get('/auth/faculties?limit=1000');
       return res.data;
     },
   });

@@ -67,7 +67,7 @@ export default function UserManagementPanel() {
 
     setDeleting(true);
     try {
-      const res = await api.get('/auth/faculties');
+      const res = await api.get('/auth/faculties?limit=1000');
       const faculty = res.data.find(f => f.email === deleteEmail.trim().toLowerCase());
       
       if (!faculty) {
