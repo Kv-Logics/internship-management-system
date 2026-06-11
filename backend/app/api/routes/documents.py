@@ -25,6 +25,11 @@ async def upload_document(
     if not safe_filename:
         raise HTTPException(status_code=400, detail="Invalid filename.")
 
+    # Extension validation to prevent arbitrary uploads (e.g., PHP, JS, executable scripts)
+    ext = os.path.splitext(safe_filename)[1].lower()
+    if ext not in (".pdf", ".doc", ".docx"):
+        raise HTTPException(status_code=400, detail="Forbidden file type. Only PDF, DOC, and DOCX files are allowed.")
+
     # Fetch internship to compute index and faculty prefix
     from app.models.internship import Internship
     from app.models.faculty import Faculty
