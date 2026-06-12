@@ -99,11 +99,11 @@ async def request_otp(data: OtpRequest, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         print(f"SMTP Warning: Failed to dispatch verification email: {e}")
             
-    # Print code to logs in development for easy local testing
-    print(f"\n-----------------------------------------")
-    print(f"[LOCAL BYPASS OTP] FOR {email}: {code}")
-    print(f"-----------------------------------------\n")
-    
+    if os.getenv("ENVIRONMENT") != "production" and os.getenv("NODE_ENV") != "production":
+        print(f"\n-----------------------------------------")
+        print(f"[LOCAL BYPASS OTP] FOR {email}: {code}")
+        print(f"-----------------------------------------\n")
+            
     return {"success": True, "message": "Verification OTP sent successfully."}
 
 class LoginRequest(BaseModel):
@@ -410,14 +410,11 @@ async def upload_signature(
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Invalid file type. Must be an image (PNG, JPG, etc.).")
         
-    from app.utils.filenames import get_faculty_prefix
-    faculty_prefix = get_faculty_prefix(current_user.email)
-    
     ext = (file.filename or "signature.png").split(".")[-1].lower()
     if ext not in ("png", "jpg", "jpeg"):
         raise HTTPException(status_code=400, detail="Forbidden file type. Only PNG, JPG, and JPEG signatures are allowed.")
         
-    filename = f"{faculty_prefix}_sign.{ext}"
+    filename = f"{current_user.faculty_id}_sign.{ext}"
     os.makedirs("signatures", exist_ok=True)
     filepath = os.path.join("signatures", filename)
     
