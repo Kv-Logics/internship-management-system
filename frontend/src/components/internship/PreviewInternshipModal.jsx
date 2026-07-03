@@ -137,6 +137,11 @@ export default function PreviewInternshipModal({ previewItem, setPreviewItem, ca
                     onChange={async (e) => {
                       const file = e.target.files[0];
                       if (!file) return;
+
+                      if (file.size > 25 * 1024 * 1024) {
+                        toast.error('File size exceeds 25MB limit.');
+                        return;
+                      }
                       const formData = new FormData();
                       formData.append('file', file);
                       formData.append('document_type', 'report');
