@@ -89,7 +89,7 @@ async def create_internship(intern_id: UUID, internship: InternshipCreate, db: A
     return result.scalars().first()
 
 @router.get("/", response_model=List[InternshipResponse])
-async def read_internships(skip: int = 0, limit: int = 100, search: Optional[str] = None, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
+async def read_internships(skip: int = 0, limit: int = 10000, search: Optional[str] = None, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_faculty)):
     from app.models.faculty import Faculty
     query = select(Internship).options(
         selectinload(Internship.documents),
